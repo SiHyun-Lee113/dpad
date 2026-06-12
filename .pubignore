@@ -1,0 +1,19 @@
+# Build & tooling
+.dart_tool/
+build/
+.idea/
+.vscode/
+*.iml
+.fvm/
+.fvmrc
+.metadata
+pubspec.lock
+
+# Working notes (not part of the package)
+dpad.md
+
+# OS noise
+.DS_Store
+
+# Generated docs
+doc/

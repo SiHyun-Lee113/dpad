@@ -1,22 +1,22 @@
 name: dpad_example
-description: A comprehensive Flutter TV application demonstrating advanced D-pad navigation with multiple pages and rich interactions.
-version: 1.0.0+1
+description: A Netflix-style Flutter TV app showcasing the dpad package.
+version: 3.0.0
 publish_to: 'none'
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
   dpad:
     path: ../
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

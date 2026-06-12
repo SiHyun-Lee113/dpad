@@ -1,20 +1,18 @@
 <h1 align="center">
   📺 Dpad
   <br>
-  <span style="font-size: 0.6em; font-weight: normal;">Flutter TV Navigation System</span>
+  <span style="font-size: 0.6em; font-weight: normal;">D-pad navigation for Flutter TV apps</span>
 </h1>
 
 <p align="center">
-  <a href="README_CN.md">
-    <img src="https://img.shields.io/badge/📖-文档切换-red.svg" alt="中文文档">
+  <a href="https://github.com/fluttercandies/dpad/blob/main/README_CN.md">
+    <img src="https://img.shields.io/badge/📖-中文文档-red.svg" alt="中文文档">
   </a>
 </p>
 
 <p align="center">
-  <img src="dpad.png" alt="Dpad Logo" width="200">
+  <img src="https://raw.githubusercontent.com/fluttercandies/dpad/main/dpad.png" alt="Dpad Logo" width="200">
 </p>
-
-<br>
 
 <p align="center">
   <a href="https://pub.dev/packages/dpad">
@@ -28,416 +26,326 @@
   </a>
 </p>
 
-<div align="center" style="padding: 20px; max-width: 600px; margin: 0 auto; text-align: center;">
-  <strong>A simple yet powerful D-pad navigation system that makes Flutter development for Android TV, Fire TV, and other TV platforms as easy as native Android development.</strong>
+<div align="center">
+  <strong>Focus that behaves the way TV users expect — regions with memory, beam-based directional traversal, press feedback, and a remote that never goes dead.</strong>
 </div>
 
-## ✨ Features
+## Why Dpad?
 
-- 🎯 **Simple Setup**: Just 3 steps to get started
-- 🎨 **Customizable Effects**: Built-in focus effects + custom builders
-- 📺 **Platform Support**: Android TV, Fire TV, Apple TV, and more
-- ⚡ **Performance**: Optimized for smooth navigation
-- 🔧 **Programmatic Control**: Full API for programmatic navigation
-- 🎮 **Game Controller Support**: Works with standard controllers
-- 🔄 **Sequential Navigation**: Previous/Next support for media and lists
+Flutter's built-in directional focus picks the geometrically *closest* widget. On a real TV layout that means focus jumps lanes between the sidebar and the content, skips rows, escapes carousels, and forgets where you were. Dpad replaces that engine with the model TV platforms actually use (Android's `FocusFinder` / Leanback):
 
-## 🚀 Quick Start
+- **🗂 Regions with memory** — a sidebar, a poster row, a grid: each `DpadRegion` keeps focus inside itself first, and when you come back, you land on the item you left.
+- **📐 Beam-based traversal** — candidates aligned with the focused item beat diagonal ones. Down means *down*, not "down-ish and slightly to the right".
+- **🧲 Edge control per axis** — leave, stop, or wrap at every region boundary. Carousels wrap, panels stop, everything else flows.
+- **🛟 Focus never dies** — app starts with focus, pushed pages get initial focus without `autofocus`, focus survives list refreshes, dialog dismissals and app resume. A remote with nothing focused is a dead remote; Dpad makes that state unrepresentable.
+- **⏯ Real remote semantics** — select & long-select with pressed-state visuals, back/menu keys, app shortcuts, key repeat — all standing down automatically while a text field is being edited.
+- **⌨️ Text fields done right** — mid-text, arrows move the caret; at the caret's edge (and vertically in single-line fields) they navigate away, so a remote-only user is never trapped in a search box. IME composition owns the keys while active.
+- **📜 Lazy-list aware** — when the next item isn't built yet (`ListView.builder`), Dpad scrolls and continues instead of stopping at the cache boundary.
+- **🖱 Hybrid input** — taps and mouse clicks work out of the box for touch TVs and desktop debugging.
+- **🔍 Built-in focus inspector** — `debugOverlay: true` outlines the focused node with its label, region and size. Focus bugs on TV are invisible without it.
 
-### 1. Add Dependency
+Everything is built on Flutter's own focus system (`FocusTraversalPolicy`, `Shortcuts`, `Actions`) — no key hijacking, full interop with plain `Focus` widgets, `TextField`s, and dialogs.
+
+## Quick start
+
+### 1. Add the dependency
 
 ```yaml
 dependencies:
-  dpad: any
+  dpad: ^3.0.0
 ```
 
-### 2. Wrap Your App
+### 2. Install the root (one line)
 
 ```dart
 import 'package:dpad/dpad.dart';
 
-void main() {
-  runApp(
-    DpadNavigator(
-      enabled: true,
-      child: MaterialApp(
-        home: MyApp(),
+MaterialApp(
+  builder: Dpad.wrap(),   // covers every route, dialog and sheet
+  home: const HomePage(),
+)
+```
+
+### 3. Make things focusable
+
+```dart
+DpadFocusable(
+  autofocus: true,
+  onSelect: () => playMovie(movie),
+  child: PosterCard(movie),
+)
+```
+
+That's a working TV app: arrow keys / remote d-pad move focus with a scale-and-border effect (themable), center button calls `onSelect`, and the focused item auto-scrolls into view with padding for its glow.
+
+## Regions: structure your screen like a TV app
+
+```dart
+Row(
+  children: [
+    // Sidebar: never lets focus fall off the top/bottom of the screen,
+    // remembers the selected destination.
+    DpadRegion(
+      verticalEdge: DpadEdgeBehavior.stop,
+      child: SidebarColumn(...),
+    ),
+    Expanded(
+      child: ListView(
+        children: [
+          for (final row in rows)
+            // Each poster row remembers its position. Down and back up
+            // returns to the same poster — like every real TV app.
+            DpadRegion(
+              child: SizedBox(
+                height: 200,
+                child: ListView(scrollDirection: Axis.horizontal,
+                    children: row.cards),
+              ),
+            ),
+        ],
       ),
     ),
-  );
-}
-```
-
-### 3. Make Widgets Focusable
-
-```dart
-class MyScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        DpadFocusable(
-          autofocus: true,
-          onFocus: () => print('Focused'),
-          onSelect: () => print('Selected'),
-          builder: (context, isFocused, child) {
-            return AnimatedContainer(
-              duration: Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isFocused ? Colors.blue : Colors.transparent,
-                  width: 3,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: child,
-            );
-          },
-          child: ElevatedButton(
-            onPressed: () => print('Pressed'),
-            child: Text('Button 1'),
-          ),
-        ),
-        
-        DpadFocusable(
-          onSelect: () => print('Button 2 selected'),
-          child: ElevatedButton(
-            onPressed: () => print('Pressed'),
-            child: Text('Button 2'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-```
-
-## 🎨 Focus Effects
-
-### Built-in Effects
-
-```dart
-// Border highlight
-DpadFocusable(
-  builder: FocusEffects.border(color: Colors.blue),
-  child: MyWidget(),
-)
-
-// Glow effect
-DpadFocusable(
-  builder: FocusEffects.glow(glowColor: Colors.blue),
-  child: MyWidget(),
-)
-
-// Scale effect
-DpadFocusable(
-  builder: FocusEffects.scale(scale: 1.1),
-  child: MyWidget(),
-)
-
-// Gradient background
-DpadFocusable(
-  builder: FocusEffects.gradient(
-    focusedColors: [Colors.blue, Colors.purple],
-  ),
-  child: MyWidget(),
-)
-
-// Combine multiple effects
-DpadFocusable(
-  builder: FocusEffects.combine([
-    FocusEffects.scale(scale: 1.05),
-    FocusEffects.border(color: Colors.blue),
-  ]),
-  child: MyWidget(),
+  ],
 )
 ```
 
-### Custom Effects
+### Entering a region
+
+`DpadRegion(enter: ...)` decides where focus lands when it crosses in:
+
+| `DpadEnterBehavior` | Landing item |
+|---|---|
+| `restore` *(default)* | The last focused item; falls back to the position-nearest item, the `entry` item, then the geometric target |
+| `entry` | The item marked `DpadFocusable(entry: true)` |
+| `nearest` | The geometrically nearest item (plain Flutter behavior) |
+
+### Leaving a region
+
+Each axis independently chooses what happens at the boundary:
+
+| `DpadEdgeBehavior` | Effect |
+|---|---|
+| `leave` *(default)* | Focus continues to the best target outside |
+| `stop` | Key is consumed, focus stays, `onEdge` fires (bump animations, sounds) |
+| `wrap` | Focus wraps to the opposite side — carousels |
+
+```dart
+DpadRegion(
+  horizontalEdge: DpadEdgeBehavior.wrap,   // an endless episode carousel
+  onEdge: (direction) => playBumpSound(),
+  onFocusChange: (inside) => setState(() => highlighted = inside),
+  child: episodeRow,
+)
+```
+
+### Memory that survives rebuilds
+
+State-based memory dies when a section switcher rebuilds its subtree — the
+classic "tabs forget where I was" TV pitfall. Give the region a stable key
+and the memory persists, position-aware, across any rebuild:
+
+```dart
+DpadRegion(
+  memoryKey: 'home/trending-row',
+  child: trendingRow,
+)
+```
+
+## Focus effects
+
+Effects are immutable, const-able, and composable — first effect in the list is the outermost wrapper:
 
 ```dart
 DpadFocusable(
-  builder: (context, isFocused, child) {
-    return Transform.scale(
-      scale: isFocused ? 1.1 : 1.0,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        decoration: BoxDecoration(
-          boxShadow: isFocused ? [
-            BoxShadow(
-              color: Colors.blue.withValues(alpha: 0.6), // ignore: deprecated_member_use
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ] : null,
-        ),
-        child: child,
-      ),
-    );
-  },
-  child: Container(
-    child: Text('Custom Effect'),
+  effects: const [
+    DpadScaleEffect(scale: 1.1),                // lift…
+    DpadGlowEffect(color: Colors.amber),        // …and glow
+  ],
+  child: card,
+)
+```
+
+Built-ins: `DpadScaleEffect` (with pressed-state push-down), `DpadBorderEffect` (layout-shift-free), `DpadGlowEffect`, `DpadElevationEffect`, `DpadOpacityEffect` (dim the rest), `DpadTintEffect`, `DpadCustomEffect`.
+
+Set app-wide defaults once:
+
+```dart
+MaterialApp(
+  builder: Dpad.wrap(
+    theme: const DpadThemeData(
+      effects: [DpadGlowEffect()],
+      scrollPadding: 64,
+    ),
   ),
 )
 ```
 
-## 🔧 Advanced Usage
-
-### 📜 Auto-Scroll (New in v1.2.2)
-
-`DpadFocusable` now automatically scrolls to ensure the focused widget is fully visible, including focus effects like glow and borders.
+Or take full control — including the **pressed** state of the select key:
 
 ```dart
 DpadFocusable(
-  autoScroll: true,           // Enable auto-scroll (default: true)
-  scrollPadding: 24.0,        // Extra padding for focus effects (default: 24.0)
-  builder: FocusEffects.glow(glowColor: Colors.blue),
-  child: MyWidget(),
-)
-
-// Disable auto-scroll for specific widgets
-DpadFocusable(
-  autoScroll: false,
-  child: MyWidget(),
-)
-
-// Programmatic scroll control
-Dpad.scrollToFocus(
-  focusNode,
-  padding: 32.0,
-  duration: Duration(milliseconds: 300),
-  curve: Curves.easeOutCubic,
-);
-```
-
-## 🧠 Focus Memory (Updated in v1.2.2)
-
-The focus memory system intelligently remembers user's focus positions and restores them when navigating back, providing a more natural TV navigation experience.
-
-### Quick Setup
-
-```dart
-DpadNavigator(
-  focusMemory: FocusMemoryOptions(
-    enabled: true,
-    maxHistory: 20,
+  onSelect: play,
+  builder: (context, state, child) => AnimatedScale(
+    scale: state.pressed ? 0.97 : (state.focused ? 1.06 : 1.0),
+    duration: const Duration(milliseconds: 120),
+    child: child,
   ),
-  onNavigateBack: (context, previousEntry, history) {
-    if (previousEntry != null) {
-      previousEntry.focusNode.requestFocus();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+  child: card,
+)
+```
+
+## Remote interactions
+
+```dart
+DpadFocusable(
+  onSelect: () => play(),                 // center button (or tap)
+  onLongSelect: () => showOptionsSheet(), // held center button
+  onFocusChange: (focused) => setState(() => hovered = focused),
+  onDirection: (direction) {              // sliders: consume left/right
+    if (direction == TraversalDirection.right) { volumeUp(); return true; }
+    if (direction == TraversalDirection.left)  { volumeDown(); return true; }
+    return false;                         // up/down keep navigating
   },
-  child: MyApp(),
+  child: volumeRow,
 )
 ```
 
-### Region Identification
+Back, menu, app-level shortcuts, sound feedback and the focus inspector
+live on the root:
 
 ```dart
-// Tab bar
-DpadFocusable(
-  region: 'tabs',
-  child: TabButton(),
-)
-
-// Filter area
-DpadFocusable(
-  region: 'filters',
-  child: FilterOption(),
-)
-
-// Content cards
-DpadFocusable(
-  region: 'cards',
-  child: ContentCard(),
+Dpad.wrap(
+  onBack: () {                  // back key: pop, or confirm exit at home
+    if (navigator.canPop()) { navigator.pop(); return true; }
+    showExitDialog(); return true;
+  },
+  onMenu: () => showAboutDialog(),
+  onFocusChange: (node) {       // the app-wide focus "tick" sound
+    if (node != null) audio.playTick();
+  },
+  shortcuts: {
+    LogicalKeyboardKey.keyS: () => openSearch(),
+  },
+  debugOverlay: kDebugMode,     // on-screen focus inspector
 )
 ```
 
-### Use Cases
+All of these — and directional navigation itself — automatically stand down while a `TextField` is focused, so typing is never hijacked.
 
-- **Tab Navigation**: Tab A → Browse → Tab B → Back → Tab B (restores previous tab)
-- **Filter Navigation**: Filter A → Browse → Filter A → Back → Filter A (restores previous filter)
-- **Cross-Route Navigation**: Maintains separate focus history per route
-
-## 🎯 Region-based Navigation (New in v2.0.0)
-
-Region-based navigation solves the common TV UX problem where Flutter's default geometric navigation doesn't match user expectations.
-
-### The Problem
-
-With default Flutter navigation:
-- Tab → Content: might focus any card based on distance
-- Content → Tab: might jump to unexpected tab
-- Sidebar → Grid: focus could land anywhere
-
-### The Solution
+Unusual remote? Remap any key group:
 
 ```dart
-DpadNavigator(
-  regionNavigation: RegionNavigationOptions(
-    enabled: true,
-    rules: [
-      // Tab → Content: always focus first card
-      RegionNavigationRule(
-        fromRegion: 'tabs',
-        toRegion: 'content',
-        direction: TraversalDirection.down,
-        strategy: RegionNavigationStrategy.fixedEntry,
-        bidirectional: true,
-        reverseStrategy: RegionNavigationStrategy.memory,
-      ),
-      // Sidebar → Grid: always focus first card
-      RegionNavigationRule(
-        fromRegion: 'sidebar',
-        toRegion: 'grid',
-        direction: TraversalDirection.right,
-        strategy: RegionNavigationStrategy.fixedEntry,
-      ),
-    ],
+Dpad.wrap(
+  keySet: const DpadKeySet().copyWith(
+    select: [LogicalKeyboardKey.f1, ...DpadKeySet.defaultSelect],
   ),
-  child: MyApp(),
 )
 ```
 
-### Mark Entry Points
+## Programmatic control
 
 ```dart
-// First card in content area - entry point
-DpadFocusable(
-  region: 'content',
-  isEntryPoint: true,
-  child: ContentCard(),
-)
+final dpad = Dpad.of(context);
 
-// Other cards in the same region
-DpadFocusable(
-  region: 'content',
-  child: ContentCard(),
-)
+dpad.moveDown();                 // exactly like a remote key press
+dpad.move(TraversalDirection.left);
+dpad.select();                   // press the focused item
+dpad.requestFocus(searchNode);   // jump focus (updates region memory)
+dpad.ensureVisible();            // padded scroll-into-view
+dpad.focused;                    // the currently focused node
 ```
 
-### Navigation Strategies
+## Best practices for TV
 
-| Strategy | Behavior |
-|----------|----------|
-| `geometric` | Flutter's default distance-based navigation |
-| `fixedEntry` | Always focus the widget marked as `isEntryPoint` |
-| `memory` | Restore last focused widget, fallback to entry point |
-| `custom` | Use custom resolver function |
+Distilled from the example app — follow these and a complex TV app stays
+predictable:
 
-### Custom Shortcuts
+1. **One `autofocus` per screen.** Give the primary action (`Play`, first
+   card) `autofocus: true`. Everything else is handled: pushed routes,
+   removed items and app resume keep focus alive automatically.
+2. **One `DpadRegion` per visual section.** Sidebar, each shelf row, each
+   grid. Region-first traversal and focus memory are what make navigation
+   feel native.
+3. **Use `memoryKey` on regions inside section switchers.** Plain state
+   dies with the subtree; keyed memory survives any rebuild.
+4. **Lay out shelves with the padding *inside* the scroll view.**
 
-```dart
-DpadNavigator(
-  customShortcuts: {
-    LogicalKeyboardKey.keyG: () => _showGridView(),
-    LogicalKeyboardKey.keyL: () => _showListView(),
-    LogicalKeyboardKey.keyR: () => _refreshData(),
-    LogicalKeyboardKey.keyS: () => _showSearch(),
-  },
-  onMenuPressed: () => _showMenu(),
-  onBackPressed: () => _handleBack(),
-  child: MyApp(),
-)
+   ```dart
+   SizedBox(
+     height: cardHeight + 32,                    // headroom for effects
+     child: ListView.builder(
+       scrollDirection: Axis.horizontal,
+       padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+       ...
+     ),
+   )
+   ```
+
+   Scaled and glowing focus effects paint into the padding instead of
+   being clipped at the row edge.
+5. **`stop` the edges of anchored panels, `wrap` carousels.** A sidebar
+   should never let focus fall off the screen; an episode strip can loop.
+6. **Wire actions through `onSelect`, not the child's `onPressed`.**
+   `DpadFocusable` is the single focus stop; a wrapped Material button is
+   just visuals.
+7. **Don't fight text fields.** Leave `TextField`s bare (not wrapped in
+   `DpadFocusable`); arrows edit text mid-string and navigate away at the
+   edges automatically.
+8. **Debug with `debugOverlay: true`.** Focus bugs are invisible on a TV
+   across the room; the inspector shows the focused node, its region and
+   geometry live.
+
+## How it plays with Flutter
+
+- `DpadTraversalPolicy` is a `FocusTraversalPolicy` — plain `Focus`/`ElevatedButton` widgets participate in navigation, dialogs trap focus through their own `FocusScope`, and popping a route restores focus to the item that opened it, all natively.
+- `DpadFocusable` excludes its child's focus by default (`excludeChildFocus: true`) so wrapping a button never creates two d-pad stops. Set it to `false` when the child must own focus (e.g. a `TextField`).
+- Tab order falls back to reading order.
+
+## Example
+
+The [example](https://github.com/fluttercandies/dpad/tree/main/example) is a complete TV streaming UI — expanding sidebar, poster rows with memory, wrap-around episode carousel, search with text input, settings with an `onDirection` volume slider, long-select context sheets, and an exit-confirmation back flow. Run it on a TV emulator or any desktop:
+
+```bash
+cd example
+flutter run -d macos   # or windows, linux, an Android TV emulator…
 ```
 
-**Default Keyboard Shortcuts (v1.1.0+):**
-- **Arrow Keys**: Directional navigation (up, down, left, right)
-- **Tab/Shift+Tab**: Sequential navigation (next/previous)
-- **Media Track Next/Previous**: Media control navigation
-- **Channel Up/Down**: TV remote sequential navigation
-- **Enter/Select/Space**: Trigger selection action
-- **Escape/Back**: Navigate back
-- **ContextMenu**: Show menu
+## Platform support
 
-### Programmatic Navigation
+| Platform | Input |
+|---|---|
+| Android TV / Google TV | Remote d-pad, game controllers |
+| Amazon Fire TV | Fire TV remotes |
+| Apple TV (via web/custom embedder) | Siri Remote arrows |
+| Desktop (macOS/Windows/Linux) | Arrow keys — ideal for development |
+| Web | Arrow keys (Dpad maps them even where Flutter doesn't) |
 
-```dart
-// Navigate in directions
-Dpad.navigateUp(context);
-Dpad.navigateDown(context);
-Dpad.navigateLeft(context);
-Dpad.navigateRight(context);
+Requires Flutter `>= 3.24`.
 
-// Sequential navigation (new in v1.1.0)
-Dpad.navigateNext(context);      // Tab / Media Track Next
-Dpad.navigatePrevious(context);   // Shift+Tab / Media Track Previous
+## Migrating from 2.x
 
-// Focus management
-final currentFocus = Dpad.currentFocus;
-Dpad.requestFocus(myFocusNode);
-Dpad.clearFocus();
-```
+3.0 is a ground-up rewrite with a smaller, TV-first API. The old global history stack, rule tables and registration flags are replaced by declarative widgets:
 
-### Platform-Specific Handling
+| 2.x | 3.0 |
+|---|---|
+| `DpadNavigator(child: app)` | `MaterialApp(builder: Dpad.wrap())` |
+| `Dpad.navigateUp(context)` | `Dpad.of(context).moveUp()` |
+| `DpadFocusable(builder: (c, focused, child) ...)` | `builder: (c, state, child)` with `state.focused` / `state.pressed` |
+| `FocusEffects.glow()` (closures) | `effects: const [DpadGlowEffect()]` (const classes) |
+| `FocusMemoryOptions` + history stack | per-`DpadRegion` memory (`enter: DpadEnterBehavior.restore`, the default) |
+| `RegionNavigationOptions` + `RegionNavigationRule` tables | `DpadRegion(enter: ..., horizontalEdge: ..., verticalEdge: ...)` |
+| `DpadFocusable(region: 'tabs', isEntryPoint: true)` | wrap the tabs in a `DpadRegion`, mark one item `entry: true` |
+| `customShortcuts:` | `shortcuts:` (now suspended during text editing) |
+| `onBackPressed` / `onMenuPressed` | `onBack` (returns `bool`) / `onMenu` |
 
-```dart
-DpadNavigator(
-  onMenuPressed: () {
-    // Handle menu button on TV remotes
-    _showMenu();
-  },
-  onBackPressed: () {
-    // Handle back button
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-  },
-  child: MyApp(),
-)
-```
+See the [CHANGELOG](https://github.com/fluttercandies/dpad/blob/main/CHANGELOG.md) for the full list.
 
-## 📱 Platform Support
+## ❤️ Support
 
-- **Android TV**: Full native D-pad support
-- **Amazon Fire TV**: Compatible with Fire TV remotes
-- **Apple TV**: Works with Siri Remote (Flutter web)
-- **Game Controllers**: Standard controller navigation
-- **Generic TV Platforms**: Any D-pad compatible input
+- 🌟 [Star on GitHub](https://github.com/fluttercandies/dpad)
+- 👍 [Like on pub.dev](https://pub.dev/packages/dpad)
+- 🐛 [Report issues](https://github.com/fluttercandies/dpad/issues)
 
-## 💡 Best Practices
+---
 
-1. **Always set `autofocus: true`** on one widget per screen for initial focus
-2. **Test with real D-pad hardware**, not just keyboard arrows
-3. **Consider focus order** - arrange widgets logically for navigation
-4. **Provide clear visual feedback** - use prominent focus indicators
-5. **Handle edge cases** - what happens when navigation fails?
-
-## 🏗️ Architecture
-
-The system consists of three main components:
-
-- **DpadNavigator**: Root widget that captures D-pad events
-- **DpadFocusable**: Wrapper that makes widgets focusable
-- **Dpad**: Utility class for programmatic control
-
-All components work together seamlessly with Flutter's focus system.
-
-## 🔄 Migration
-
-Coming from other TV navigation libraries?
-
-- ✅ No complex configuration needed
-- ✅ Works with standard Flutter widgets
-- ✅ No custom FocusNode management required
-- ✅ Built-in support for all TV platforms
-- ✅ Extensive customization options
-
-## 📖 Example
-
-Check out the [example app](./example) for a complete implementation showing:
-- Grid navigation
-- List navigation
-- Custom focus effects
-- Programmatic navigation
-- Platform-specific handling
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**Make Flutter shine on the big screen!** 🚀📺✨

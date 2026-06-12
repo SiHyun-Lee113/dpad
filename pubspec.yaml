@@ -1,14 +1,17 @@
 name: dpad
-description: Flutter TV D-pad navigation system - as simple as native Android development
-version: 2.0.2
+description: >-
+  Production-grade D-pad navigation for Flutter TV apps. Focus regions with
+  memory, TV-correct directional traversal, focus effects and remote-key
+  handling.
+version: 3.0.0
 homepage: https://github.com/fluttercandies/dpad
 repository: https://github.com/fluttercandies/dpad
 issue_tracker: https://github.com/fluttercandies/dpad/issues
 documentation: https://github.com/fluttercandies/dpad
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-  flutter: ">=3.0.0"
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
@@ -17,8 +20,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  test: ^1.26.2
+  flutter_lints: ^5.0.0
 
 topics:
   - android-tv
@@ -26,3 +28,7 @@ topics:
   - focus-management
   - fire-tv
   - apple-tv
+
+screenshots:
+  - description: The dpad logo
+    path: dpad.png

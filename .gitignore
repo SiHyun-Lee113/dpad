@@ -53,3 +53,8 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# FVM Version Cache
+.fvm/
+# Generated docs
+doc/

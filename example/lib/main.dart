@@ -1,329 +1,156 @@
-import 'dart:ui';
-
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'pages/focus_effects_demo.dart';
-import 'pages/focus_memory_demo.dart';
-import 'pages/programmatic_navigation_demo.dart';
-import 'pages/region_navigation_demo.dart';
-import 'pages/tv_interface_demo.dart';
+import 'app_state.dart';
+import 'pages/home_page.dart';
 
-/// Dpad Example App - Comprehensive API Demo
-///
-/// This example demonstrates all features of the dpad package:
-///
-/// 1. **DpadNavigator** - Root navigation container
-///    - `enabled` - Enable/disable navigation
-///    - `customShortcuts` - Custom keyboard bindings
-///    - `focusMemory` - Focus history management
-///    - `regionNavigation` - Region-based navigation
-///    - `onNavigateBack` - Custom back navigation
-///    - `onMenuPressed` / `onBackPressed` - Platform callbacks
-///
-/// 2. **DpadFocusable** - Focus wrapper widget
-///    - `autofocus` - Initial focus
-///    - `onFocus` / `onBlur` / `onSelect` - Focus callbacks
-///    - `builder` - Custom focus effects
-///    - `region` - Region identifier
-///    - `isEntryPoint` / `entryPriority` - Region entry points
-///    - `autoScroll` / `scrollPadding` - Auto-scroll behavior
-///
-/// 3. **FocusEffects** - Built-in focus effects
-///    - `border()` / `glow()` / `scale()` / `gradient()`
-///    - `elevation()` / `scaleWithBorder()` / `opacity()` / `colorTint()`
-///    - `combine()` - Combine multiple effects
-///
-/// 4. **RegionNavigation** - Cross-region navigation
-///    - `RegionNavigationStrategy` - geometric/fixedEntry/memory/custom
-///    - `RegionNavigationRule` - Navigation rules
-///    - `RegionAwareFocusTraversalPolicy` - Flutter system API
-///
-/// 5. **Dpad** - Utility class
-///    - `navigateUp/Down/Left/Right()` - Directional navigation
-///    - `navigateNext/Previous()` - Sequential navigation
-///    - `requestFocus()` / `clearFocus()` - Focus management
-///    - `scrollToFocus()` - Scroll control
-void main() {
-  runApp(const DpadExampleApp());
-}
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
-class DpadExampleApp extends StatefulWidget {
-  const DpadExampleApp({super.key});
+void main() => runApp(const DpadTvApp());
 
-  @override
-  State<DpadExampleApp> createState() => _DpadExampleAppState();
-}
-
-class _DpadExampleAppState extends State<DpadExampleApp> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+class DpadTvApp extends StatelessWidget {
+  const DpadTvApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DpadNavigator(
-      enabled: true,
-      focusMemory: const FocusMemoryOptions(
-        enabled: true,
-        maxHistory: 50,
+    return MaterialApp(
+      title: 'Dpad TV',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: _navigatorKey,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6C5CE7),
+          brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF0E1116),
+        useMaterial3: true,
       ),
-      onNavigateBack: (context, previousEntry, history) {
-        // Try to restore previous focus
-        if (previousEntry != null && previousEntry.requestFocusSafely()) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (previousEntry.isValid) {
-              Dpad.scrollToFocus(previousEntry.focusNode);
-            }
-          });
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      onBackPressed: () {
-        // Handle system back
-        if (_navigatorKey.currentState?.canPop() == true) {
-          _navigatorKey.currentState?.pop();
-        }
-      },
-      onMenuPressed: () {
-        // Handle menu button press
-      },
-      customShortcuts: {
-        LogicalKeyboardKey.keyH: () {
-          _navigatorKey.currentState?.pushReplacementNamed('/');
-        },
-        LogicalKeyboardKey.digit1: () {
-          _navigatorKey.currentState?.pushNamed('/effects');
-        },
-        LogicalKeyboardKey.digit2: () {
-          _navigatorKey.currentState?.pushNamed('/memory');
-        },
-        LogicalKeyboardKey.digit3: () {
-          _navigatorKey.currentState?.pushNamed('/region');
-        },
-        LogicalKeyboardKey.digit4: () {
-          _navigatorKey.currentState?.pushNamed('/programmatic');
-        },
-        LogicalKeyboardKey.digit5: () {
-          _navigatorKey.currentState?.pushNamed('/tv');
-        },
-      },
-      child: MaterialApp(
-        navigatorKey: _navigatorKey,
-        title: 'Dpad Example',
-        theme: ThemeData.dark(useMaterial3: true).copyWith(
-          primaryColor: const Color(0xFF007BFF),
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF007BFF),
-            secondary: Color(0xFF6C757D),
+      // One builder installs TV navigation for every route, dialog and
+      // sheet. (`Dpad.wrap()` does the same in one line — the explicit
+      // widget is used here so the focus inspector can be toggled live.)
+      builder: (context, child) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: showFocusInspector,
+          builder: (context, inspector, _) => Dpad(
+            // App-wide styling and timing defaults for every DpadFocusable.
+            theme: const DpadThemeData(scrollPadding: 56),
+            // Back behaves like a TV remote: pop whatever is open, confirm
+            // before leaving the app from the home screen.
+            onBack: _handleBack,
+            // The menu key opens the help dialog.
+            onMenu: _showAbout,
+            // The classic focus "tick" on every move.
+            onFocusChange: (node) {
+              if (node != null && clickSounds.value) {
+                SystemSound.play(SystemSoundType.click);
+              }
+            },
+            // App-level shortcuts (autosuspended while typing in Search!).
+            shortcuts: {
+              LogicalKeyboardKey.keyH: () => activeSection.value = 0,
+              LogicalKeyboardKey.keyL: () => activeSection.value = 1,
+              LogicalKeyboardKey.keyS: () => activeSection.value = 2,
+              LogicalKeyboardKey.keyI: () =>
+                  showFocusInspector.value = !showFocusInspector.value,
+              LogicalKeyboardKey.f1: _showAbout,
+            },
+            // The built-in focus inspector, toggled from Settings.
+            debugOverlay: inspector,
+            child: child ?? const SizedBox.shrink(),
           ),
+        );
+      },
+      home: const HomePage(),
+    );
+  }
+
+  static bool _handleBack() {
+    final NavigatorState navigator = _navigatorKey.currentState!;
+    if (navigator.canPop()) {
+      navigator.pop();
+      return true;
+    }
+    showDialog<void>(
+      context: navigator.context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161A22),
+        title: const Text('Leave Dpad TV?'),
+        content: const Text('Dialogs trap d-pad focus automatically — '
+            'try navigating outside.'),
+        actions: [
+          _DialogAction(
+            label: 'Stay',
+            autofocus: true,
+            onSelect: () => Navigator.pop(context),
+          ),
+          _DialogAction(
+            label: 'Exit',
+            onSelect: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+    return true;
+  }
+
+  static void _showAbout() {
+    final BuildContext? context = _navigatorKey.currentContext;
+    if (context == null) {
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161A22),
+        title: const Text('Dpad TV demo'),
+        content: const Text(
+          'Built with the dpad package.\n\n'
+          '• Arrow keys / d-pad — move focus\n'
+          '• Enter / center — select\n'
+          '• Hold center — context menu on posters\n'
+          '• Esc / back — back\n'
+          '• Menu key or F1 — this dialog\n'
+          '• H / L / S — jump to a section\n'
+          '• I — toggle the focus inspector',
         ),
-        scrollBehavior: const ScrollBehavior().copyWith(
-          dragDevices: PointerDeviceKind.values.toSet(),
-        ),
-        debugShowCheckedModeBanner: false,
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const HomePage(),
-          '/effects': (context) => const FocusEffectsDemo(),
-          '/memory': (context) => const FocusMemoryDemo(),
-          '/region': (context) => const RegionNavigationDemo(),
-          '/programmatic': (context) => const ProgrammaticNavigationDemo(),
-          '/tv': (context) => const TVInterfaceDemo(),
-        },
+        actions: [
+          _DialogAction(
+            label: 'Close',
+            autofocus: true,
+            onSelect: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Home page with navigation to all demo pages
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Title
-            const Text(
-              '📺 Dpad Example',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Flutter TV Navigation System',
-              style: TextStyle(
-                fontSize: 20,
-                color: Color(0xFF888888),
-              ),
-            ),
-            const SizedBox(height: 48),
-
-            // Navigation buttons
-            Wrap(
-              spacing: 24,
-              runSpacing: 24,
-              alignment: WrapAlignment.center,
-              children: [
-                _MenuButton(
-                  title: '1. Focus Effects',
-                  subtitle: 'Built-in & custom effects',
-                  icon: Icons.auto_awesome,
-                  color: Colors.purple,
-                  autofocus: true,
-                  onSelect: () => Navigator.pushNamed(context, '/effects'),
-                ),
-                _MenuButton(
-                  title: '2. Focus Memory',
-                  subtitle: 'History & restoration',
-                  icon: Icons.history,
-                  color: Colors.orange,
-                  onSelect: () => Navigator.pushNamed(context, '/memory'),
-                ),
-                _MenuButton(
-                  title: '3. Region Navigation',
-                  subtitle: 'Cross-region rules',
-                  icon: Icons.grid_view,
-                  color: Colors.green,
-                  onSelect: () => Navigator.pushNamed(context, '/region'),
-                ),
-                _MenuButton(
-                  title: '4. Programmatic',
-                  subtitle: 'API navigation',
-                  icon: Icons.code,
-                  color: Colors.blue,
-                  onSelect: () => Navigator.pushNamed(context, '/programmatic'),
-                ),
-                _MenuButton(
-                  title: '5. TV Interface',
-                  subtitle: 'Full demo',
-                  icon: Icons.tv,
-                  color: Colors.red,
-                  onSelect: () => Navigator.pushNamed(context, '/tv'),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 48),
-
-            // Keyboard hints
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Column(
-                children: [
-                  Text(
-                    'Keyboard Shortcuts',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '↑↓←→ Navigate  •  Enter Select  •  Esc Back  •  H Home  •  1-5 Quick Jump',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF888888),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MenuButton extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onSelect;
-  final bool autofocus;
-
-  const _MenuButton({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
+class _DialogAction extends StatelessWidget {
+  const _DialogAction({
+    required this.label,
     required this.onSelect,
     this.autofocus = false,
   });
+
+  final String label;
+  final VoidCallback onSelect;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     return DpadFocusable(
       autofocus: autofocus,
       onSelect: onSelect,
-      builder: (context, isFocused, child) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 200,
-          height: 160,
-          transform: Matrix4.identity()..scale(isFocused ? 1.05 : 1.0),
-          transformAlignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isFocused ? color : color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isFocused ? Colors.white : Colors.transparent,
-              width: 2,
-            ),
-            boxShadow: isFocused
-                ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.5),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 48,
-                color: isFocused ? Colors.white : color,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isFocused ? Colors.white : Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isFocused ? Colors.white70 : Colors.white38,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      effects: const [
+        DpadTintEffect(
+            opacity: 0.25, borderRadius: BorderRadius.all(Radius.circular(8))),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Text(label),
+      ),
     );
   }
 }

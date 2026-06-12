@@ -1,59 +1,54 @@
-# Dpad Example
+# Dpad TV — example app
 
-Comprehensive example app demonstrating all features of the dpad package.
+A complete, remote-drivable TV streaming UI built with the
+[`dpad`](https://pub.dev/packages/dpad) package.
 
-## Demo Pages
+## What it demonstrates
 
-### 1. Focus Effects Demo (`/effects`)
-- All built-in `FocusEffects` builders: border, glow, scale, gradient, elevation, opacity, colorTint
-- Combined effects using `FocusEffects.combine()`
-- Custom focus effect builders
-- Focus callbacks: onFocus, onBlur, onSelect
+| Feature | Where |
+|---|---|
+| Root install through `MaterialApp.builder` (explicit `Dpad`; `Dpad.wrap()` is the 1-line variant) | `lib/main.dart` |
+| App-wide `DpadThemeData` defaults | `lib/main.dart` |
+| Back key flow (pop → exit confirmation dialog) | `lib/main.dart` |
+| Menu key / F1 → help dialog | `lib/main.dart` |
+| App shortcuts `H` / `L` / `S` (suspended while typing) | `lib/main.dart` |
+| Focus "tick" sound via `Dpad.onFocusChange` | `lib/main.dart` |
+| Focus inspector (`Dpad.debugOverlay`), toggled live from Settings | `lib/main.dart` + settings |
+| Expanding navigation rail (`DpadRegion.onFocusChange`, `verticalEdge: stop`) | `lib/widgets/sidebar.dart` |
+| Edge "bump" feedback (`DpadRegion.onEdge`) | `lib/widgets/sidebar.dart` |
+| Section switching on focus + dive-in via `Dpad.of(context).moveRight()` | `lib/widgets/sidebar.dart` |
+| Poster rows with focus memory that survives section switches (`memoryKey`) | `lib/sections/for_you_section.dart` |
+| Clip-safe shelf layout (padding inside the row's `ListView`) | `lib/sections/for_you_section.dart` |
+| Region entry items (`entry: true`) and `DpadEnterBehavior.entry` | `lib/sections/for_you_section.dart` |
+| Per-item effect overrides | `lib/sections/for_you_section.dart` |
+| Grid navigation with auto-scroll | `lib/sections/library_section.dart` |
+| Text input coexistence (caret vs. navigation, never trapped) | `lib/sections/search_section.dart` |
+| `DpadTheme` subtree override (one style for all rows) | `lib/sections/settings_section.dart` |
+| Disabled items skipped by navigation (`enabled: false`) | `lib/sections/settings_section.dart` |
+| `onDirection` volume slider (consumes left/right) | `lib/sections/settings_section.dart` |
+| Programmatic focus (`Dpad.of(context).requestFocus` + external `focusNode`) | `lib/sections/settings_section.dart` |
+| Live focus-effect gallery incl. `DpadCustomEffect`, wrap + `enter: nearest` chips | `lib/sections/settings_section.dart` |
+| Long-select context sheet (`onLongSelect`) | `lib/widgets/poster_card.dart` |
+| Fully custom presentation with pressed state (`builder`) | `lib/widgets/tv_button.dart` |
+| Wrap-around episode carousel (`horizontalEdge: wrap`) | `lib/pages/detail_page.dart` |
+| Focus restoration after popping a route | select any poster, press back |
 
-### 2. Focus Memory Demo (`/memory`)
-- `FocusMemoryOptions` configuration
-- Focus history tracking
-- Region-based history
-- History restoration with Esc/Back
-
-### 3. Region Navigation Demo (`/region`)
-- `RegionNavigationOptions` and `RegionNavigationRule`
-- Navigation strategies: geometric, fixedEntry, memory, custom
-- Entry points with `isEntryPoint` and `entryPriority`
-- Cross-region navigation rules
-
-### 4. Programmatic Navigation Demo (`/programmatic`)
-- `Dpad.navigateUp/Down/Left/Right()` - Directional navigation
-- `Dpad.navigateNext/Previous()` - Sequential navigation  
-- `Dpad.requestFocus()` / `Dpad.clearFocus()` - Focus management
-- `Dpad.scrollToFocus()` - Scroll control
-- `DpadNavigator.historyOf()` / `focusMemoryOf()` / `regionManagerOf()`
-
-### 5. TV Interface Demo (`/tv`)
-- Complete TV streaming app interface
-- Multiple regions: sidebar, hero, content sections
-- Focus memory with tab/content restoration
-- Auto-scroll behavior
-- Real-world layout patterns
-
-## Keyboard Shortcuts
+## Controls
 
 | Key | Action |
 |-----|--------|
-| ↑↓←→ | Navigate between focusable items |
-| Enter/Space | Select current item |
-| Esc | Go back / Restore previous focus |
-| H | Home (main menu) |
-| 1-5 | Quick jump to demo pages |
+| ↑ ↓ ← → / d-pad | Move focus |
+| Enter / Select / Space | Select |
+| Hold select on a poster | Context menu |
+| Esc / Back | Back (exit dialog on the home screen) |
+| Menu / F1 | Help dialog |
+| H / L / S | Jump to For you / Library / Search |
+| I | Toggle the focus inspector |
 
 ## Running
 
 ```bash
 cd example
-flutter run -d macos  # or linux, windows, chrome
-```
-
-For TV devices:
-```bash
-flutter run -d <device-id>  # Android TV, Fire TV, etc.
+flutter run -d macos     # or windows, linux, chrome
+flutter run -d <tv-id>   # Android TV / Fire TV device or emulator
 ```

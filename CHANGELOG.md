@@ -5,171 +5,159 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-06-13
+
+A ground-up rewrite. 3.0 replaces the 2.x key interception and rule tables
+with a TV-correct traversal engine built on Flutter's own focus primitives
+(`FocusTraversalPolicy`, `Shortcuts`, `Actions`). The API is smaller,
+declarative, and tuned for how TV interfaces actually behave.
+
+Requires Flutter `>= 3.24` / Dart `>= 3.5`.
+
+### Added
+
+- **`DpadTraversalPolicy`** — directional navigation modeled on Android's
+  `FocusFinder`/Leanback: edge-based direction tests, beam preference
+  (aligned candidates beat diagonal ones) and weighted distances.
+- **`DpadRegion`** — declarative navigation areas:
+  - region-first traversal: focus moves within the region before
+    considering outside targets;
+  - per-region focus memory with `DpadEnterBehavior.restore` (default),
+    `entry` and `nearest`;
+  - per-axis edge control with `DpadEdgeBehavior.leave`, `stop` and `wrap`
+    (carousel wrap-around);
+  - `onEdge` and `onFocusChange` callbacks; nesting supported.
+- **Lazy-list awareness** — when no focus candidate exists but a scrollable
+  can still scroll in that direction (e.g. unbuilt `ListView.builder`
+  items), the engine scrolls and retries instead of stopping.
+- **Focus resilience** — guaranteed startup focus (with `autofocus` taking
+  precedence), initial focus for routes pushed without `autofocus`,
+  restoration when the focused widget is disposed, and restoration on app
+  resume. The remote can never end up with nothing focused.
+- **`DpadRegion.memoryKey`** — focus memory that persists across full
+  subtree rebuilds (section/tab switchers), with position-aware
+  restoration when the original items were recreated.
+- **TV-correct text fields** — arrows move the caret mid-text but navigate
+  away at the caret's edge (and vertically in single-line fields), so a
+  remote-only user is never trapped in a search box; IME composition owns
+  all keys while active.
+- **`Dpad.debugOverlay`** — an on-screen focus inspector outlining the
+  focused node with its label, region and geometry.
+- **`Dpad.onFocusChange`** — a global hook on every focus move, for click
+  sounds, haptics or analytics.
+- **`DpadFocusable` interactions** — `onLongSelect` (held center button)
+  with select/long-select disambiguation, pressed-state visuals,
+  `onDirection` for slider-style consumption of arrows, tap/click support
+  for hybrid devices, and `excludeChildFocus` (default `true`) so wrapped
+  buttons never become double focus stops.
+- **Class-based focus effects** — `DpadScaleEffect` (pressed push-down),
+  `DpadBorderEffect` (layout-shift-free foreground border),
+  `DpadGlowEffect`, `DpadElevationEffect`, `DpadOpacityEffect`,
+  `DpadTintEffect`, `DpadCustomEffect`; composable via `effects:` lists.
+- **`DpadTheme` / `DpadThemeData`** — app-wide defaults for effects,
+  auto-scroll padding/duration/curve and long-select duration.
+- **`DpadController`** (`Dpad.of(context)`) — `move*()`, `next()`,
+  `previous()`, `select()`, `back()`, `requestFocus()`, `clearFocus()`,
+  `ensureVisible()`, `focused`.
+- **`DpadKeySet`** — semantic key mapping (up/down/left/right, select,
+  back, menu) with TV-wide defaults and `copyWith` remapping.
+- **Text-input safety** — directional keys, back/menu and app shortcuts
+  automatically stand down while an `EditableText` is focused.
+- **`Dpad.wrap()`** — one-line installation through `MaterialApp.builder`
+  covering every route, dialog and overlay.
+- **`DpadScroll.ensureVisible`** — padded reveal that walks all scrollable
+  ancestors, honors reversed axes and centers oversized items.
+
+### Changed
+
+- **BREAKING** `DpadNavigator` → `Dpad` (recommended placement:
+  `MaterialApp(builder: Dpad.wrap())`).
+- **BREAKING** `Dpad` static helpers → instance methods on
+  `Dpad.of(context)` (`navigateUp` → `moveUp`, `navigateNext` → `next`,
+  `requestFocusSafely` → `requestFocus`, `scrollToFocus` →
+  `ensureVisible`).
+- **BREAKING** `DpadFocusable.builder` signature is now
+  `(context, DpadFocusState state, child)`; `state.focused` replaces the
+  `isFocused` boolean and `state.pressed` is new. `child` is required.
+- **BREAKING** `onFocus`/`onBlur` merged into `onFocusChange(bool)`.
+- **BREAKING** selection is delivered through Flutter's `Actions` system
+  and raw key tracking instead of `consumeKeyboardToken()`; select fires
+  once per press with correct repeat suppression.
+- **BREAKING** `onBackPressed` → `onBack` (returns `bool`: `true`
+  consumes, `false` lets the framework handle it); `onMenuPressed` →
+  `onMenu`; `customShortcuts` → `shortcuts`.
+- Auto-scroll defaults now come from the theme (`scrollPadding: 48`).
+
+### Removed
+
+- **BREAKING** `FocusEffects` closure factories — use the `DpadEffect`
+  classes.
+- **BREAKING** `FocusMemoryOptions`, `FocusHistoryManager`,
+  `FocusHistoryEntry`, `onNavigateBack` and the global focus-history stack
+  — per-region memory (`DpadRegion`) replaces them.
+- **BREAKING** `RegionNavigationOptions`, `RegionNavigationRule`,
+  `RegionNavigationStrategy`, `RegionNavigationManager`,
+  `RegionAwareFocusTraversalPolicy`, `RegionTraversalGroup`,
+  `RegionTraversalGroupScope` and the imperative node registration —
+  `DpadRegion` + `DpadTraversalPolicy` replace the entire rule system.
+- **BREAKING** `DpadFocusable.region` / `isEntryPoint` / `entryPriority` —
+  membership now comes from the widget tree (nearest `DpadRegion`); mark
+  one item per region with `entry: true`.
+
+### Fixed
+
+- Wrapping a focusable Material button in `DpadFocusable` no longer
+  creates two d-pad stops.
+- Space/Enter and arrow keys are no longer hijacked while typing in a
+  `TextField`.
+- Holding the select key no longer fires `onSelect` repeatedly.
+- Auto-scroll now works correctly inside reversed scrollables and centers
+  items larger than the viewport.
+- Focus no longer dies when the focused item is removed from a refreshing
+  list.
+- The [Dpad] root keeps an identical widget structure for every
+  configuration, so flipping `enabled` or `debugOverlay` at runtime never
+  resets the application subtree.
+
 ## [2.0.2] - 2025-11-26
 
 ### Fixed
-- **Region Navigation Policy Detection**: Fixed issue where `RegionAwareFocusTraversalPolicy` was not being detected properly
-  - Now directly checks for and uses the policy via `FocusTraversalGroup.maybeOf()`
-  - Ensures region navigation rules are applied correctly when navigating between regions
+- Region navigation policy detection via `FocusTraversalGroup.maybeOf()`.
 
 ### Improved
-- **Navigation Logic**: Streamlined the navigation flow in `_navigate()` method
+- Streamlined navigation flow in `_navigate()`.
 
 ## [2.0.1] - 2025-11-25
 
 ### Added
-- **Window Focus Restoration**: Automatically restores focus when app/window regains focus
-  - Implements `WidgetsBindingObserver` to detect `AppLifecycleState.resumed`
-  - Restores last focused widget from history or finds first focusable widget
-  - Handles navigation attempts when no widget is focused
+- Window focus restoration on app resume.
 
 ### Improved
-- **Smart Region Navigation**: Prioritizes within-region navigation before cross-region jumps
-  - Navigates through all items in current region (including hidden/scrolled items) first
-  - Only crosses to other regions when current region boundary is reached
-  - Better geometric calculation for directional navigation
-- **Focus History Safety**: Improved `requestFocusSafely()` to handle async focus changes correctly
-  - Removed premature focus verification that could fail due to async timing
-  - Added context validity check before requesting focus
+- Within-region navigation priority and focus history safety.
 
 ### Fixed
-- Fixed issue where navigation stopped working after window lost and regained focus
-- Fixed issue where pressing left/right would jump to sidebar before navigating through all list items
-- Fixed focus memory restoration returning `false` due to async focus request timing
+- Navigation after window focus loss; sidebar jump issues; focus memory
+  restoration timing.
 
 ## [2.0.0] - 2025-11-25
 
 ### Added
-- **Region-based Navigation System**: A completely new navigation paradigm for TV apps
-  - `RegionNavigationOptions` for configuring cross-region navigation behavior
-  - `RegionNavigationRule` for defining navigation rules between regions
-  - `RegionNavigationStrategy` enum with 4 strategies:
-    - `geometric`: Flutter's default distance-based navigation
-    - `fixedEntry`: Always focus the entry point widget
-    - `memory`: Restore last focused widget in target region
-    - `custom`: User-defined navigation logic
-  - `RegionNavigationManager` for managing region registrations
-  - `isEntryPoint` and `entryPriority` properties in `DpadFocusable`
-  - Bidirectional rules support with `bidirectional` and `reverseStrategy`
+- Region-based navigation system (`RegionNavigationOptions`,
+  `RegionNavigationRule`, strategies, `RegionAwareFocusTraversalPolicy`).
 
-- **Flutter System API Integration**:
-  - `RegionAwareFocusTraversalPolicy` extending `ReadingOrderTraversalPolicy`
-  - `RegionTraversalGroup` widget for wrapping with custom policy
-  - `RegionTraversalGroupScope` InheritedWidget for passing manager
-  - Uses `FocusScope.focusInDirection()` for native navigation
-
-### Improved
-- Better integration with Flutter's native focus traversal system
-- Enhanced `DpadNavigator.regionManagerOf()` for accessing region manager
-- Automatic region manager updates when options change
-
-### Breaking Changes
-- This is a major version update with new APIs
-- Existing code using v1.x should continue to work without changes
-
-## [1.2.2] - 2025-11-25
+## [1.2.2] - 2025-11-20
 
 ### Added
-- Auto-scroll feature for `DpadFocusable` to ensure focused widgets are fully visible
-- `autoScroll` parameter to enable/disable auto-scroll (default: `true`)
-- `scrollPadding` parameter to control extra padding around focused widgets (default: `24.0`)
-- Smart scrolling algorithm that handles both horizontal and vertical scroll containers
-- `scrollToFocus()` method in `Dpad` utility class for programmatic scroll control
+- Auto-scroll for focused widgets (`autoScroll`, `scrollPadding`,
+  `Dpad.scrollToFocus`).
 
-### Improved
-- Focus effects like glow, shadows, and borders are now fully visible at viewport edges
-- Enhanced InheritedWidget pattern with `_DpadNavigatorScope` for O(1) ancestor lookup
-- Instance-based `FocusHistoryManager` per `DpadNavigator` for proper scope isolation
-- Better duplicate recording prevention with `lastPoppedEntry` tracking
-
-### Fixed
-- Focus glow being clipped when items are at the edge of scrollable containers
-
-## [1.2.1] - 2025-11-25
-
-### Fixed
-- Improved focus memory safety by removing excessive FocusNode validation checks
-- Fixed context-based focus history retrieval in Dpad utility methods
-- Simplified FocusNode.isValid check for better performance and reliability
-- Updated DpadCore methods to require context parameter for navigator-scoped history
-- Fixed DpadNavigator scope isolation for independent focus history per navigator
-
-### Improved
-- Enhanced error handling for disposed FocusNode detection
-- Optimized focus restoration logic to avoid redundant validation
-- Streamlined example code by removing debug shortcuts for focus history
-- Updated documentation to reflect context-based API changes
-
-## [1.2.0] - 2025-11-23
+## [1.1.0] - 2025-11-15
 
 ### Added
-- Focus memory system for intelligent focus restoration
-- `FocusMemoryOptions` configuration for focus memory settings
-- `region` property in `DpadFocusable` for area identification
-- `onNavigateBack` callback in `DpadNavigator` for custom back navigation logic
-- Stack-based focus history management with configurable size limits
-- Route and region aware focus restoration
+- Sequential navigation (`navigateNext` / `navigatePrevious`), media key
+  support, focus memory with history stack.
 
-### Features
-- Automatic focus position restoration when returning to previous areas
-- Tab switching memory - returns to previously selected tab
-- Filter navigation memory - returns to previously selected filter option
-- Cross-route focus history tracking
-- Configurable focus memory size and regions
-- Complete backward compatibility with existing APIs
+## [1.0.0] - 2025-11-10
 
-## [1.1.0] - 2025-11-14
-
-### Added
-- Sequential navigation support with `navigateNext()` and `navigatePrevious()` methods
-- Default keyboard shortcuts for sequential navigation:
-  - Tab/Shift+Tab for next/previous navigation
-  - Media Track Next/Previous for media control
-  - Channel Up/Down for TV remote sequential navigation
-- Enhanced documentation for sequential navigation use cases
-
-### Features
-- Logical focus traversal order navigation (independent of spatial positioning)
-- Media player control support
-- Form field sequential navigation
-- List and grid item navigation
-- TV remote channel button support
-
-## [1.0.0] - 2025-11-14
-
-### Added
-- Initial release of Dpad - Flutter TV Navigation System
-- `DpadNavigator` widget for global D-pad event handling
-- `DpadFocusable` widget for making any widget focusable
-- `FocusEffects` class with 8+ built-in focus effects:
-  - Border highlight
-  - Glow/shadow effect
-  - Scale animation
-  - Gradient background
-  - Elevation effect
-  - Combined scale and border
-  - Opacity transition
-  - Color tint effect
-- `Dpad` utility class for programmatic navigation
-- Support for custom keyboard shortcuts
-- Platform-specific key handling (menu, back, select)
-- Full compatibility with Flutter's native focus system
-- Support for Android TV, Fire TV, Apple TV, and game controllers
-- Complete documentation and examples
-- TypeScript-like strong typing throughout
-- Performance optimizations for smooth navigation
-
-### Features
-- Simple 3-step setup process
-- Custom focus effect builders
-- Programmatic focus control
-- Custom keyboard shortcuts support
-- Multi-platform TV support
-- Built-in accessibility features
-- Seamless Flutter integration
-
-### Documentation
-- Comprehensive README with examples
-- API documentation in source code
-- Example app demonstrating all features
-- Migration guide from other solutions
+- Initial release: `DpadNavigator`, `DpadFocusable`, `FocusEffects`,
+  programmatic `Dpad` utilities.
