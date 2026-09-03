@@ -11,24 +11,23 @@ import 'root.dart';
 import 'scroll.dart';
 import 'theme.dart';
 
-/// Signature for building a fully custom focus presentation for a
-/// [DpadFocusable].
+/// [DpadFocusable]의 포커스 표현을 완전히 직접 그리는 시그니처.
 typedef DpadFocusableBuilder = Widget Function(
   BuildContext context,
   DpadFocusState state,
   Widget child,
 );
 
-/// Signature for intercepting directional key presses on a focused item.
+/// 포커스된 칸에서 방향 키를 가로채는 시그니처.
 ///
-/// Return `true` to consume the key press (focus will not move); return
-/// `false` to let normal d-pad navigation happen.
+/// `true`를 반환하면 키를 소비합니다 (포커스가 움직이지 않음).
+/// `false`면 일반 D-pad 탐색이 진행됩니다.
 typedef DpadDirectionCallback = bool Function(TraversalDirection direction);
 
-/// Makes [child] a TV focus target: navigable with the d-pad, selectable
-/// with the remote's center button, and decorated with focus effects.
+/// [child]을 TV 포커스 타깃으로 만듭니다. D-pad로 이동하고, 리모컨 가운데
+/// 버튼으로 선택하며, 포커스 이펙트로 꾸밉니다.
 ///
-/// The minimal form is all most items need:
+/// 대부분의 칸은 이 최소 형태면 충분합니다:
 ///
 /// ```dart
 /// DpadFocusable(
@@ -37,36 +36,34 @@ typedef DpadDirectionCallback = bool Function(TraversalDirection direction);
 /// )
 /// ```
 ///
-/// ### Visuals
+/// ### 비주얼
 ///
-/// By default the item uses the effects from the nearest [DpadTheme]
-/// (a scale + border by default). Override per item with [effects], or take
-/// full control with [builder], which receives the live [DpadFocusState]
-/// including the pressed state of the select key.
+/// 기본값은 가장 가까운 [DpadTheme]의 이펙트입니다 (기본적으로 스케일 + 테두리).
+/// 칸마다 [effects]로 덮어쓰거나, [builder]로 전부 직접 그리세요.
+/// [builder]는 선택 키 pressed 상태를 포함한 실시간 [DpadFocusState]를 받습니다.
 ///
-/// ### Interaction
+/// ### 상호작용
 ///
-/// * [onSelect] — center button pressed (or tapped on touch devices).
-/// * [onLongSelect] — center button held; great for context menus.
-/// * [onDirection] — intercept arrows while focused, e.g. to implement a
-///   value slider that consumes left/right.
+/// * [onSelect] — 가운데 버튼 (또는 터치 탭).
+/// * [onLongSelect] — 가운데 버튼을 길게; 컨텍스트 메뉴에 적합합니다.
+/// * [onDirection] — 포커스 중 화살표를 가로챕니다. 예: 좌/우를 소비하는 슬라이더.
+/// * [ttsLabel] — 포커스되면 [Dpad.ttsService]가 읽는 문자열.
 ///
-/// ### Inside a [DpadRegion]
+/// ### [DpadRegion] 안에서
 ///
-/// Items report themselves to their region's focus memory automatically.
-/// Mark one item per region with [entry] to make it the landing target for
-/// [DpadEnterBehavior.entry] (and the fallback for
-/// [DpadEnterBehavior.restore]).
+/// 칸은 영역의 포커스 메모리에 자동으로 등록됩니다.
+/// 영역당 한 칸에 [entry]를 주면 [DpadEnterBehavior.entry]의 착지 타깃이 됩니다
+/// ([DpadEnterBehavior.restore]의 폴백이기도 함).
 ///
-/// ### One widget, one focus target
+/// ### 위젯 하나, 포커스 타깃 하나
 ///
-/// Descendant focus is excluded by default ([excludeChildFocus]), so
-/// wrapping a `Card`, `Image` or even a Material button never produces two
-/// stops on the d-pad path. Wire behavior through [onSelect] instead of the
-/// child's `onPressed`. Set [excludeChildFocus] to `false` when the child
-/// must manage its own focus (e.g. a `TextField`).
+/// 기본값으로 자손 포커스는 제외됩니다 ([excludeChildFocus]).
+/// 그래서 `Card`, `Image`, Material 버튼을 감싸도 D-pad 경로에 칸이 두 개가 되지 않습니다.
+/// 자식의 `onPressed` 대신 [onSelect]에 동작을 연결하세요.
+/// 자식이 스스로 포커스를 관리해야 하면 ([TextField] 등)
+/// [excludeChildFocus]를 `false`로 하세요.
 class DpadFocusable extends StatefulWidget {
-  /// Creates a TV focus target around [child].
+  /// [child]을 감싸는 TV 포커스 타깃을 만듭니다.
   const DpadFocusable({
     super.key,
     required this.child,
@@ -81,6 +78,7 @@ class DpadFocusable extends StatefulWidget {
     this.entry = false,
     this.focusNode,
     this.debugLabel,
+    this.ttsLabel,
     this.autoScroll = true,
     this.scrollPadding,
     this.scrollDuration,
@@ -92,77 +90,83 @@ class DpadFocusable extends StatefulWidget {
           'Provide either effects or builder, not both.',
         );
 
-  /// The content to make focusable.
+  /// 포커스 가능하게 만들 콘텐츠.
   final Widget child;
 
-  /// Focus effects for this item, first effect outermost.
+  /// 이 칸의 포커스 이펙트. 첫 이펙트가 가장 바깥입니다.
   ///
-  /// When null (and [builder] is null) the [DpadThemeData.effects] apply.
+  /// null이고 [builder]도 null이면 [DpadThemeData.effects]가 적용됩니다.
   final List<DpadEffect>? effects;
 
-  /// Builds a fully custom presentation from the live [DpadFocusState].
-  /// Mutually exclusive with [effects].
+  /// 실시간 [DpadFocusState]로 표현을 완전히 직접 그립니다.
+  /// [effects]와 동시에 쓸 수 없습니다.
   final DpadFocusableBuilder? builder;
 
-  /// Called when the user presses the select key (or taps the item).
+  /// 선택 키를 누르거나 (또는 칸을 탭할 때) 호출됩니다.
   final VoidCallback? onSelect;
 
-  /// Called when the user holds the select key for
-  /// [DpadThemeData.longSelectDuration] (or long-presses the item).
+  /// 선택 키를 [DpadThemeData.longSelectDuration]만큼 누르고 있을 때
+  /// (또는 롱프레스) 호출됩니다.
   ///
-  /// When provided, [onSelect] fires on key release instead of key press so
-  /// the two gestures never overlap.
+  /// 이 콜백이 있으면 [onSelect]는 키를 뗄 때 발생해, 두 제스처가 겹치지 않습니다.
   final VoidCallback? onLongSelect;
 
-  /// Called with `true` when the item gains focus and `false` when it
-  /// loses focus.
+  /// 칸이 포커스를 얻으면 `true`, 잃으면 `false`.
   final ValueChanged<bool>? onFocusChange;
 
-  /// Intercepts directional keys while this item is focused. Return `true`
-  /// to consume the press. Repeats (held keys) are delivered too.
+  /// 이 칸이 포커스일 때 방향 키를 가로챕니다. `true`를 반환하면 키를 소비합니다.
+  /// 키를 누르고 있는 동안의 repeat도 전달됩니다.
   final DpadDirectionCallback? onDirection;
 
-  /// Whether this item grabs focus when it first appears.
+  /// 처음 나타날 때 이 칸이 포커스를 가져갈지.
   ///
-  /// Give exactly one item per screen `autofocus: true` so a remote-only
-  /// user always has a visible starting point.
+  /// 화면당 정확히 한 칸에 `autofocus: true`를 주세요. 헤더의 "처음으로"
+  /// 처럼 기하학적으로 왼쪽 위에 있는 크롬보다 이 칸이 이깁니다.
+  /// 키오스크는 메뉴 첫 버튼, 대기 화면은 시작 버튼에 둡니다.
+  ///
+  /// [Navigator]로 다음 페이지를 열면 이전 페이지 위젯은 스택에 남습니다.
+  /// 이 플래그를 새 화면 시작 칸에 두면 그 칸이 포커스를 가져갑니다.
+  /// 없어도 [Dpad]는 새 라우트의 첫 칸에 착지하고, 이전 페이지 마지막
+  /// 포커스로 돌아가지 않습니다.
   final bool autofocus;
 
-  /// Whether the item can be focused. Disabled items are skipped by
-  /// navigation entirely.
+  /// 이 칸에 포커스를 줄 수 있는지. 비활성 칸은 탐색에서 완전히 건너뜁니다.
   final bool enabled;
 
-  /// Marks this item as its region's entry target. See
-  /// [DpadEnterBehavior.entry]. One per region.
+  /// 이 칸을 영역의 입구 타깃으로 표시합니다. [DpadEnterBehavior.entry]를 보세요.
+  /// 영역당 하나.
   final bool entry;
 
-  /// An external focus node to use instead of the internal one.
+  /// 내부 노드 대신 쓸 외부 포커스 노드.
   final FocusNode? focusNode;
 
-  /// A label shown in focus debug output.
+  /// 포커스 디버그 출력에 보이는 라벨.
   final String? debugLabel;
 
-  /// Whether gaining focus auto-scrolls the item into view with padding for
-  /// its focus effects. Defaults to `true`.
+  /// 이 칸이 포커스를 받으면 [Dpad.ttsService]가 읽습니다.
+  ///
+  /// 비어 있거나 null이면 안내하지 않고, 이전 발화를 중단합니다.
+  final String? ttsLabel;
+
+  /// 포커스를 받을 때 이펙트 여백을 두고 화면에 보이게 스크롤할지.
+  /// 기본값은 `true`.
   final bool autoScroll;
 
-  /// Viewport padding for auto-scroll. Defaults to
-  /// [DpadThemeData.scrollPadding].
+  /// 자동 스크롤 시 뷰포트 패딩. 기본값은 [DpadThemeData.scrollPadding].
   final double? scrollPadding;
 
-  /// Auto-scroll animation duration. Defaults to
-  /// [DpadThemeData.scrollDuration].
+  /// 자동 스크롤 애니메이션 시간. 기본값은 [DpadThemeData.scrollDuration].
   final Duration? scrollDuration;
 
-  /// Auto-scroll animation curve. Defaults to [DpadThemeData.scrollCurve].
+  /// 자동 스크롤 애니메이션 커브. 기본값은 [DpadThemeData.scrollCurve].
   final Curve? scrollCurve;
 
-  /// Whether descendants are removed from the focus tree so this widget is
-  /// a single d-pad stop. Defaults to `true`.
+  /// 자손을 포커스 트리에서 빼, 이 위젯이 D-pad 한 칸이 되게 할지.
+  /// 기본값은 `true`.
   final bool excludeChildFocus;
 
-  /// Whether taps focus the item and trigger [onSelect], for hybrid
-  /// touch/pointer devices and desktop debugging. Defaults to `true`.
+  /// 탭이 칸에 포커스를 주고 [onSelect]를 호출할지.
+  /// 터치/포인터 기기와 데스크톱 디버깅용. 기본값은 `true`.
   final bool tapToSelect;
 
   @override
@@ -178,6 +182,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   bool _pressed = false;
   bool _selectKeyDown = false;
   bool _longSelectFired = false;
+  bool _claimedAutofocus = false;
   Timer? _longSelectTimer;
 
   @override
@@ -190,6 +195,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _region = DpadRegion.maybeOf(context);
+    _scheduleAutofocusClaim();
   }
 
   @override
@@ -202,9 +208,19 @@ class _DpadFocusableState extends State<DpadFocusable> {
       if (oldWidget.entry != widget.entry) {
         DpadMarks.entry[_node] = widget.entry ? true : null;
       }
+      if (oldWidget.ttsLabel != widget.ttsLabel) {
+        DpadMarks.ttsLabel[_node] = _ttsMark(widget.ttsLabel);
+      }
       if (oldWidget.debugLabel != widget.debugLabel &&
           widget.debugLabel != null) {
         _node.debugLabel = widget.debugLabel;
+      }
+      if (oldWidget.autofocus != widget.autofocus) {
+        DpadMarks.autofocus[_node] = widget.autofocus ? true : null;
+        if (widget.autofocus) {
+          _claimedAutofocus = false;
+          _scheduleAutofocusClaim();
+        }
       }
     }
   }
@@ -212,6 +228,8 @@ class _DpadFocusableState extends State<DpadFocusable> {
   void _mark(FocusNode node) {
     DpadMarks.managed[node] = true;
     DpadMarks.entry[node] = widget.entry ? true : null;
+    DpadMarks.autofocus[node] = widget.autofocus ? true : null;
+    DpadMarks.ttsLabel[node] = _ttsMark(widget.ttsLabel);
     if (widget.debugLabel != null) {
       node.debugLabel = widget.debugLabel;
     }
@@ -223,6 +241,38 @@ class _DpadFocusableState extends State<DpadFocusable> {
     }
     DpadMarks.managed[node] = null;
     DpadMarks.entry[node] = null;
+    DpadMarks.autofocus[node] = null;
+    DpadMarks.ttsLabel[node] = null;
+  }
+
+  void _scheduleAutofocusClaim([int attempt = 0]) {
+    if (!widget.autofocus || _claimedAutofocus) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.autofocus || _claimedAutofocus) {
+        return;
+      }
+      final DpadController? dpad = Dpad.maybeOf(context);
+      if (dpad == null) {
+        _claimedAutofocus = true;
+        return;
+      }
+      if (dpad.claimAutofocus(_node)) {
+        _claimedAutofocus = true;
+        return;
+      }
+      if (attempt < 4) {
+        _scheduleAutofocusClaim(attempt + 1);
+      }
+    });
+  }
+
+  static String? _ttsMark(String? label) {
+    if (label == null || label.isEmpty) {
+      return null;
+    }
+    return label;
   }
 
   @override
@@ -242,7 +292,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   }
 
   // -----------------------------------------------------------------------
-  // Selection
+  // 선택
   // -----------------------------------------------------------------------
 
   void _handleSelect() {
@@ -276,8 +326,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
     if (canceled || _longSelectFired) {
       return;
     }
-    // With a long-select handler, select fires on release; without one it
-    // already fired on press.
+    // 롱셀렉트 핸들러가 있으면 선택은 키를 뗄 때, 없으면 누를 때 이미 발생함.
     if (widget.onLongSelect != null) {
       _handleSelect();
     }
@@ -292,7 +341,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   }
 
   // -----------------------------------------------------------------------
-  // Keys
+  // 키
   // -----------------------------------------------------------------------
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -327,12 +376,12 @@ class _DpadFocusableState extends State<DpadFocusable> {
       return KeyEventResult.handled;
     }
     if (event is KeyRepeatEvent) {
-      // Swallow repeats so a held select key never machine-guns onSelect.
+      // 누르고 있는 동안의 repeat이 onSelect를 연타하지 않게 삼킵니다.
       return _selectKeyDown ? KeyEventResult.handled : KeyEventResult.ignored;
     }
     if (event is KeyUpEvent) {
       if (!_selectKeyDown) {
-        // The matching key-down happened on another widget.
+        // 짝이 되는 key-down은 다른 위젯에서 일어났습니다.
         return KeyEventResult.ignored;
       }
       _selectKeyDown = false;
@@ -343,7 +392,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   }
 
   // -----------------------------------------------------------------------
-  // Focus
+  // 포커스
   // -----------------------------------------------------------------------
 
   void _handleFocusChange(bool focused) {
@@ -375,7 +424,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   }
 
   // -----------------------------------------------------------------------
-  // Build
+  // 빌드
   // -----------------------------------------------------------------------
 
   @override

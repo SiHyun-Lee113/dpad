@@ -6,19 +6,18 @@ import '../pages/detail_page.dart';
 import '../widgets/poster_card.dart';
 import '../widgets/tv_button.dart';
 
-/// The landing section: a featured banner plus lazy poster rows.
+/// 랜딩 섹션: 피처드 배너와 지연 로딩 포스터 줄.
 ///
-/// Every row is its own [DpadRegion], so moving down and back up returns to
-/// the poster you were on — the behavior people expect from every TV app.
+/// 각 줄은 자기 [DpadRegion]입니다. 좌/우는 줄 안에 머물고, 상/하는
+/// 다음 줄로 가며 그 줄의 첫 포스터에 착지합니다.
 class ForYouSection extends StatelessWidget {
   const ForYouSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Note: horizontal padding lives *inside* each row's ListView (not on
-    // this page list), so scaled/glowing focus effects paint into the
-    // padding instead of being clipped at the row edge — the standard way
-    // to lay out TV shelves in Flutter.
+    // 가로 패딩은 이 페이지 리스트가 아니라 *각 줄 ListView 안*에 둡니다.
+    // 스케일·글로우 이펙트가 줄 가장자리에서 잘리지 않고 패딩으로 그려집니다.
+    // Flutter에서 TV 선반을 배치하는 표준 방식입니다.
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 32),
       children: [
@@ -56,12 +55,10 @@ class _PosterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadRegion(
       debugLabel: 'row:${row.title}',
-      // Survives section switches: come back to "For you" and every row
-      // still remembers its poster.
       memoryKey: 'for-you/${row.title}',
       child: SizedBox(
-        // 124px cards + 16px of breathing room on each side, so the
-        // focused card's scale and glow stay inside the clip bounds.
+        // 124px 카드 + 양쪽 16px 여유. 포커스된 카드의 스케일·글로우가
+        // 클립 안에 남습니다.
         height: 124 + 32,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
@@ -71,8 +68,8 @@ class _PosterRow extends StatelessWidget {
             movie: row.movies[index],
             margin: const EdgeInsets.only(right: 16),
             showProgress: showProgress,
-            // The first "Continue Watching" poster overrides the theme to
-            // show per-item effects.
+            entry: index == 0,
+            // 첫 "Continue Watching" 포스터는 테마를 덮어 칸별 이펙트를 보여 줍니다.
             effects: showProgress && index == 0
                 ? const [
                     DpadScaleEffect(scale: 1.06),
@@ -152,12 +149,13 @@ class _FeaturedBanner extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // The banner buttons form their own region; `entry: true` on
-              // Play makes it the landing target, and autofocus makes it
-              // the very first focus of the whole app.
+              // 배너 버튼은 자기 영역. Play의 `entry: true`가 착지 타깃이고,
+              // autofocus가 앱 전체의 첫 포커스입니다.
               DpadRegion(
                 debugLabel: 'banner-actions',
                 enter: DpadEnterBehavior.entry,
+                // Play에서 왼쪽으로 사이드바에 갈 수 있게.
+                horizontalEdge: DpadEdgeBehavior.leave,
                 child: Row(
                   children: [
                     TvButton(

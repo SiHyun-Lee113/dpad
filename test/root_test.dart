@@ -42,6 +42,34 @@ void main() {
       await tester.pump();
       expect(dpad.focused, isNull);
     });
+
+    testWidgets('requestFirstFocus lands on the region\'s first item',
+        (tester) async {
+      final a = FocusNode();
+      final b = FocusNode();
+      final c = FocusNode();
+
+      await tester.pumpWidget(tvApp(
+        home: DpadRegion(
+          child: Row(children: [
+            item('a', a),
+            item('b', b, autofocus: true),
+            item('c', c),
+          ]),
+        ),
+      ));
+      await tester.pump();
+      expect(b.hasPrimaryFocus, isTrue);
+
+      final dpad = Dpad.of(tester.element(find.text('b')));
+      expect(dpad.requestFirstFocus(), isTrue);
+      await tester.pump();
+      expect(a.hasPrimaryFocus, isTrue);
+
+      expect(dpad.requestFocus(c), isTrue);
+      await tester.pump();
+      expect(c.hasPrimaryFocus, isTrue);
+    });
   });
 
   group('key handling', () {
@@ -61,7 +89,7 @@ void main() {
       await tester.pump();
       expect(b.hasPrimaryFocus, isTrue);
 
-      // Arrow right was remapped away.
+      // 오른쪽 화살표 매핑이 제거됨.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
       expect(b.hasPrimaryFocus, isTrue);
@@ -269,6 +297,117 @@ void main() {
       await tester.pumpAndSettle();
       expect(b.hasPrimaryFocus, isTrue,
           reason: 'route scopes remember their focused child');
+    });
+
+    testWidgets(
+        'pushing a route with autofocus steals focus from the previous page',
+        (tester) async {
+      final a = FocusNode(debugLabel: 'prev');
+      final next = FocusNode(debugLabel: 'next');
+
+      await tester.pumpWidget(tvApp(
+        restoreFocus: false,
+        home: item('a', a, autofocus: true),
+      ));
+      await tester.pumpAndSettle();
+      expect(a.hasPrimaryFocus, isTrue);
+
+      Navigator.of(tester.element(find.text('a'))).push(
+        MaterialPageRoute<void>(
+          builder: (context) => Scaffold(
+            body: item('next', next, autofocus: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(next.hasPrimaryFocus, isTrue);
+      expect(a.hasPrimaryFocus, isFalse);
+    });
+
+    testWidgets('screen swap keeps focus on autofocus, not top-left chrome',
+        (tester) async {
+      final home = FocusNode(debugLabel: '처음으로');
+      final waiting = FocusNode(debugLabel: 'waiting');
+      final menu = FocusNode(debugLabel: 'menu');
+      var onMenu = false;
+      late StateSetter setState;
+
+      await tester.pumpWidget(tvApp(
+        home: StatefulBuilder(
+          builder: (context, set) {
+            setState = set;
+            return Column(
+              children: [
+                item('처음으로', home),
+                if (onMenu)
+                  item('menu', menu, autofocus: true)
+                else
+                  item('waiting', waiting, autofocus: true),
+              ],
+            );
+          },
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(waiting.hasPrimaryFocus, isTrue);
+      expect(home.hasPrimaryFocus, isFalse);
+
+      setState(() => onMenu = true);
+      await tester.pumpAndSettle();
+      expect(menu.hasPrimaryFocus, isTrue,
+          reason: 'next screen must show focus immediately on the specified tile');
+      expect(home.hasPrimaryFocus, isFalse,
+          reason: 'chrome 처음으로 must not take first focus');
+    });
+
+    testWidgets('skipTraversal listener does not hide the focused tile',
+        (tester) async {
+      final listener = FocusNode(skipTraversal: true);
+      final home = FocusNode();
+      final menu = FocusNode();
+
+      await tester.pumpWidget(tvApp(
+        home: Focus(
+          focusNode: listener,
+          autofocus: true,
+          child: Column(
+            children: [
+              item('처음으로', home),
+              item('menu', menu, autofocus: true),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(menu.hasPrimaryFocus, isTrue,
+          reason: 'a key listener must not steal the visible kiosk focus');
+      expect(listener.hasPrimaryFocus, isFalse);
+      expect(listener.hasFocus, isTrue);
+    });
+
+    testWidgets('region autofocus lands inside the body, not chrome',
+        (tester) async {
+      final home = FocusNode();
+      final firstMenu = FocusNode();
+      final secondMenu = FocusNode();
+
+      await tester.pumpWidget(tvApp(
+        home: Column(
+          children: [
+            item('처음으로', home),
+            DpadRegion(
+              autofocus: true,
+              child: Row(children: [
+                item('m1', firstMenu),
+                item('m2', secondMenu),
+              ]),
+            ),
+          ],
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(firstMenu.hasPrimaryFocus, isTrue);
+      expect(home.hasPrimaryFocus, isFalse);
     });
   });
 }

@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// The interaction state of a [DpadFocusable], passed to focus effects and
-/// custom builders.
+/// [DpadFocusable]의 상호작용 상태. 포커스 이펙트와 커스텀 빌더에 전달됩니다.
 ///
-/// TV interfaces communicate two distinct states:
+/// TV UI는 상태를 둘로 나눕니다:
 ///
-/// * [focused] — the item is the current d-pad cursor position.
-/// * [pressed] — the select key (or a tap) is currently held down on the
-///   item. Use it for "press down" feedback, mirroring native TV platforms.
+/// * [focused] — 지금 D-pad 커서가 이 칸에 있음.
+/// * [pressed] — 선택 키(또는 탭)를 이 칸에서 누르고 있음.
+///   네이티브 TV처럼 "눌림" 피드백에 사용합니다.
 @immutable
 class DpadFocusState {
-  /// Creates an interaction state snapshot.
+  /// 상호작용 상태 스냅샷을 만듭니다.
   const DpadFocusState({required this.focused, required this.pressed});
 
-  /// A state that is neither focused nor pressed.
+  /// 포커스도 pressed도 아닌 상태.
   static const DpadFocusState idle =
       DpadFocusState(focused: false, pressed: false);
 
-  /// Whether the item currently has d-pad focus.
+  /// 지금 D-pad 포커스를 가지고 있는지.
   final bool focused;
 
-  /// Whether the select key or a pointer is currently held down on the item.
+  /// 선택 키 또는 포인터가 이 칸에서 눌려 있는지.
   final bool pressed;
 
   @override
@@ -37,20 +36,18 @@ class DpadFocusState {
   String toString() => 'DpadFocusState(focused: $focused, pressed: $pressed)';
 }
 
-/// Signature for building a custom focus presentation.
+/// 커스텀 포커스 표현을 만드는 시그니처.
 ///
-/// [child] is the wrapped content; return it decorated according to [state].
+/// [child]는 감싼 콘텐츠입니다. [state]에 맞게 꾸며 반환하세요.
 typedef DpadEffectBuilder = Widget Function(
   BuildContext context,
   DpadFocusState state,
   Widget child,
 );
 
-/// A composable, immutable visual effect applied to a [DpadFocusable] based
-/// on its [DpadFocusState].
+/// [DpadFocusState]에 따라 [DpadFocusable]에 적용하는, 조합 가능한 불변 이펙트.
 ///
-/// Effects are plain const-able objects, so they can be shared through
-/// [DpadThemeData.effects] or passed inline:
+/// 이펙트는 const 객체라 [DpadThemeData.effects]로 공유하거나 인라인으로 넘깁니다:
 ///
 /// ```dart
 /// DpadFocusable(
@@ -62,17 +59,16 @@ typedef DpadEffectBuilder = Widget Function(
 /// )
 /// ```
 ///
-/// When multiple effects are combined, the **first** effect in the list is
-/// the outermost wrapper. Put transform-style effects (like [DpadScaleEffect])
-/// first so they scale the entire decorated result.
+/// 여러 이펙트를 합치면 리스트의 **첫 번째**가 가장 바깥 래퍼입니다.
+/// [DpadScaleEffect] 같은 변환 이펙트를 앞에 두면 꾸며진 결과 전체가 확대됩니다.
 abstract class DpadEffect {
-  /// Const constructor for subclasses.
+  /// 서브클래스용 const 생성자.
   const DpadEffect();
 
-  /// Wraps [child] with this effect for the given interaction [state].
+  /// 주어진 [state]로 [child]를 이 이펙트로 감쌉니다.
   Widget build(BuildContext context, DpadFocusState state, Widget child);
 
-  /// Applies [effects] to [child], first effect outermost.
+  /// [effects]를 [child]에 적용합니다. 첫 이펙트가 가장 바깥입니다.
   static Widget wrap(
     BuildContext context,
     List<DpadEffect> effects,
@@ -87,10 +83,9 @@ abstract class DpadEffect {
   }
 }
 
-/// Scales the item up while focused and slightly back down while pressed —
-/// the classic TV "lift and press" feedback.
+/// 포커스되면 확대하고, 누르면 살짝 줄어듭니다 — TV의 "들어 올리고 누르기".
 class DpadScaleEffect extends DpadEffect {
-  /// Creates a scale effect.
+  /// 스케일 이펙트를 만듭니다.
   const DpadScaleEffect({
     this.scale = 1.08,
     this.pressedScale,
@@ -98,19 +93,19 @@ class DpadScaleEffect extends DpadEffect {
     this.curve = Curves.easeOutCubic,
   });
 
-  /// Scale factor while focused.
+  /// 포커스일 때 배율.
   final double scale;
 
-  /// Scale factor while pressed.
+  /// 눌렸을 때 배율.
   ///
-  /// Defaults to a value halfway between `1.0` and [scale], producing a
-  /// subtle "push down" while the select key is held.
+  /// 기본값은 `1.0`과 [scale]의 중간으로, 선택 키를 누르는 동안
+  /// 살짝 내려가는 느낌입니다.
   final double? pressedScale;
 
-  /// Animation duration.
+  /// 애니메이션 시간.
   final Duration duration;
 
-  /// Animation curve.
+  /// 애니메이션 커브.
   final Curve curve;
 
   @override
@@ -129,29 +124,38 @@ class DpadScaleEffect extends DpadEffect {
   }
 }
 
-/// Paints an animated border on top of the item while focused.
+/// 포커스일 때 칸 위에 테두리(와 선택적 배경)를 그립니다.
 ///
-/// The border is drawn as a foreground decoration, so enabling it never
-/// shifts the item's layout.
+/// 전경 데코레이션이라 켜도 레이아웃이 밀리지 않습니다.
+/// 키오스크 배리어프리 하이라이트는 [fillColor] + 안쪽 정렬 두꺼운
+/// 테두리 + [BorderRadius.zero] 조합입니다.
 class DpadBorderEffect extends DpadEffect {
-  /// Creates a border effect.
+  /// 테두리 이펙트를 만듭니다.
   const DpadBorderEffect({
     this.color,
+    this.fillColor,
     this.width = 2.5,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
+    this.strokeAlign = BorderSide.strokeAlignInside,
     this.duration = const Duration(milliseconds: 150),
   });
 
-  /// Border color. Defaults to [ColorScheme.primary].
+  /// 테두리 색. 기본값은 [ColorScheme.primary].
   final Color? color;
 
-  /// Border stroke width while focused.
+  /// 포커스일 때 칸을 덮는 배경색. null이면 배경을 그리지 않습니다.
+  final Color? fillColor;
+
+  /// 포커스일 때 테두리 두께.
   final double width;
 
-  /// Corner radius of the border.
+  /// 테두리 모서리 반경. 키오스크 하이라이트는 [BorderRadius.zero].
   final BorderRadius borderRadius;
 
-  /// Animation duration.
+  /// 테두리 정렬. 기본값은 안쪽이라 레이아웃이 커지지 않습니다.
+  final double strokeAlign;
+
+  /// 애니메이션 시간.
   final Duration duration;
 
   @override
@@ -160,10 +164,12 @@ class DpadBorderEffect extends DpadEffect {
     return AnimatedContainer(
       duration: duration,
       foregroundDecoration: BoxDecoration(
+        color: state.focused ? fillColor : null,
         borderRadius: borderRadius,
         border: Border.all(
-          color: state.focused ? resolved : resolved.withAlpha(0),
-          width: width,
+          color: state.focused ? resolved : const Color(0x00000000),
+          width: state.focused ? width : 0,
+          strokeAlign: strokeAlign,
         ),
       ),
       child: child,
@@ -171,9 +177,9 @@ class DpadBorderEffect extends DpadEffect {
   }
 }
 
-/// Surrounds the item with a soft glow while focused.
+/// 포커스일 때 부드러운 글로우를 그립니다.
 class DpadGlowEffect extends DpadEffect {
-  /// Creates a glow effect.
+  /// 글로우 이펙트를 만듭니다.
   const DpadGlowEffect({
     this.color,
     this.blurRadius = 18.0,
@@ -183,22 +189,22 @@ class DpadGlowEffect extends DpadEffect {
     this.duration = const Duration(milliseconds: 150),
   });
 
-  /// Glow color. Defaults to [ColorScheme.primary].
+  /// 글로우 색. 기본값은 [ColorScheme.primary].
   final Color? color;
 
-  /// Blur radius of the glow.
+  /// 글로우 블러 반경.
   final double blurRadius;
 
-  /// Spread radius of the glow.
+  /// 글로우 퍼짐 반경.
   final double spreadRadius;
 
-  /// Peak opacity of the glow while focused, `0.0` – `1.0`.
+  /// 포커스일 때 글로우 최대 불투명도, `0.0` – `1.0`.
   final double opacity;
 
-  /// Corner radius used by the shadow shape.
+  /// 그림자 모양의 모서리 반경.
   final BorderRadius borderRadius;
 
-  /// Animation duration.
+  /// 애니메이션 시간.
   final Duration duration;
 
   @override
@@ -223,9 +229,9 @@ class DpadGlowEffect extends DpadEffect {
   }
 }
 
-/// Raises the item with a Material elevation shadow while focused.
+/// 포커스일 때 Material elevation 그림자로 칸을 띄웁니다.
 class DpadElevationEffect extends DpadEffect {
-  /// Creates an elevation effect.
+  /// elevation 이펙트를 만듭니다.
   const DpadElevationEffect({
     this.elevation = 12.0,
     this.idleElevation = 0.0,
@@ -234,19 +240,19 @@ class DpadElevationEffect extends DpadEffect {
     this.duration = const Duration(milliseconds: 150),
   });
 
-  /// Elevation while focused.
+  /// 포커스일 때 elevation.
   final double elevation;
 
-  /// Elevation while not focused.
+  /// 포커스가 아닐 때 elevation.
   final double idleElevation;
 
-  /// Shadow color.
+  /// 그림자 색.
   final Color shadowColor;
 
-  /// Corner radius of the shadow shape.
+  /// 그림자 모양의 모서리 반경.
   final BorderRadius borderRadius;
 
-  /// Animation duration.
+  /// 애니메이션 시간.
   final Duration duration;
 
   @override
@@ -263,23 +269,22 @@ class DpadElevationEffect extends DpadEffect {
   }
 }
 
-/// Dims the item while it is *not* focused, letting the focused item stand
-/// out against its neighbors.
+/// 포커스가 *아닌* 칸을 어둡게 해, 포커스된 칸이 돋보이게 합니다.
 class DpadOpacityEffect extends DpadEffect {
-  /// Creates an opacity effect.
+  /// 불투명도 이펙트를 만듭니다.
   const DpadOpacityEffect({
     this.idleOpacity = 0.6,
     this.focusedOpacity = 1.0,
     this.duration = const Duration(milliseconds: 150),
   });
 
-  /// Opacity while not focused.
+  /// 포커스가 아닐 때 불투명도.
   final double idleOpacity;
 
-  /// Opacity while focused.
+  /// 포커스일 때 불투명도.
   final double focusedOpacity;
 
-  /// Animation duration.
+  /// 애니메이션 시간.
   final Duration duration;
 
   @override
@@ -292,9 +297,9 @@ class DpadOpacityEffect extends DpadEffect {
   }
 }
 
-/// Lays a translucent color over the item while focused.
+/// 포커스일 때 반투명 색을 덮습니다.
 class DpadTintEffect extends DpadEffect {
-  /// Creates a tint effect.
+  /// 틴트 이펙트를 만듭니다.
   const DpadTintEffect({
     this.color,
     this.opacity = 0.25,
@@ -302,16 +307,16 @@ class DpadTintEffect extends DpadEffect {
     this.duration = const Duration(milliseconds: 150),
   });
 
-  /// Tint color. Defaults to [ColorScheme.primary].
+  /// 틴트 색. 기본값은 [ColorScheme.primary].
   final Color? color;
 
-  /// Peak opacity of the tint while focused, `0.0` – `1.0`.
+  /// 포커스일 때 틴트 최대 불투명도, `0.0` – `1.0`.
   final double opacity;
 
-  /// Corner radius of the tint overlay.
+  /// 틴트 오버레이의 모서리 반경.
   final BorderRadius borderRadius;
 
-  /// Animation duration.
+  /// 애니메이션 시간.
   final Duration duration;
 
   @override
@@ -330,13 +335,12 @@ class DpadTintEffect extends DpadEffect {
   }
 }
 
-/// Adapts an arbitrary [DpadEffectBuilder] into a [DpadEffect], for one-off
-/// effects that do not deserve their own class.
+/// 일회성 이펙트를 위해 임의의 [DpadEffectBuilder]를 [DpadEffect]로 감쌉니다.
 class DpadCustomEffect extends DpadEffect {
-  /// Creates an effect backed by [builder].
+  /// [builder]로 동작하는 이펙트를 만듭니다.
   const DpadCustomEffect(this.builder);
 
-  /// The function that decorates the child.
+  /// child를 꾸미는 함수.
   final DpadEffectBuilder builder;
 
   @override

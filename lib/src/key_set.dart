@@ -2,16 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// The set of remote-control keys recognized by the d-pad system.
+/// D-pad 시스템이 인식하는 리모컨 키 묶음.
 ///
-/// TV remotes, game controllers and keyboards report semantically equivalent
-/// buttons under different [LogicalKeyboardKey]s. A [DpadKeySet] groups them
-/// by *meaning* so the rest of the library — and your app — can reason about
-/// "select" or "back" instead of individual key codes.
+/// TV 리모컨, 게임패드, 키보드는 같은 의미의 버튼을 서로 다른
+/// [LogicalKeyboardKey]로 보냅니다. [DpadKeySet]은 키 코드 대신
+/// "선택", "뒤로" 같은 *의미*로 묶습니다.
 ///
-/// The default constructor covers Android TV, Fire TV, Apple TV (via web),
-/// standard game controllers and desktop keyboards. Customize it when your
-/// target device reports unusual key codes:
+/// 기본 생성자는 Android TV, Fire TV, Apple TV(웹), 일반 게임패드,
+/// 데스크톱 키보드를 커버합니다. 기기가 특이한 키 코드를 쓰면 커스텀하세요:
 ///
 /// ```dart
 /// Dpad(
@@ -23,7 +21,7 @@ import 'package:flutter/widgets.dart';
 /// ```
 @immutable
 class DpadKeySet {
-  /// Creates a key set. Every parameter falls back to the platform defaults.
+  /// 키 세트를 만듭니다. 생략한 값은 플랫폼 기본값입니다.
   const DpadKeySet({
     this.up = defaultUp,
     this.down = defaultDown,
@@ -34,30 +32,30 @@ class DpadKeySet {
     this.menu = defaultMenu,
   });
 
-  /// Default keys that move focus up.
+  /// 포커스를 위로 옮기는 기본 키.
   static const List<LogicalKeyboardKey> defaultUp = <LogicalKeyboardKey>[
     LogicalKeyboardKey.arrowUp,
   ];
 
-  /// Default keys that move focus down.
+  /// 포커스를 아래로 옮기는 기본 키.
   static const List<LogicalKeyboardKey> defaultDown = <LogicalKeyboardKey>[
     LogicalKeyboardKey.arrowDown,
   ];
 
-  /// Default keys that move focus left.
+  /// 포커스를 왼쪽으로 옮기는 기본 키.
   static const List<LogicalKeyboardKey> defaultLeft = <LogicalKeyboardKey>[
     LogicalKeyboardKey.arrowLeft,
   ];
 
-  /// Default keys that move focus right.
+  /// 포커스를 오른쪽으로 옮기는 기본 키.
   static const List<LogicalKeyboardKey> defaultRight = <LogicalKeyboardKey>[
     LogicalKeyboardKey.arrowRight,
   ];
 
-  /// Default keys that confirm / press the focused item.
+  /// 포커스된 칸을 확인 / 누르는 기본 키.
   ///
-  /// Covers the remote center button ([LogicalKeyboardKey.select]), keyboard
-  /// confirm keys and the game controller `A` button.
+  /// 리모컨 가운데 버튼([LogicalKeyboardKey.select]), 키보드 확인 키,
+  /// 게임패드 `A`를 포함합니다.
   static const List<LogicalKeyboardKey> defaultSelect = <LogicalKeyboardKey>[
     LogicalKeyboardKey.select,
     LogicalKeyboardKey.enter,
@@ -66,41 +64,40 @@ class DpadKeySet {
     LogicalKeyboardKey.gameButtonA,
   ];
 
-  /// Default keys that request back navigation.
+  /// 뒤로 가기를 요청하는 기본 키.
   static const List<LogicalKeyboardKey> defaultBack = <LogicalKeyboardKey>[
     LogicalKeyboardKey.escape,
     LogicalKeyboardKey.goBack,
     LogicalKeyboardKey.gameButtonB,
   ];
 
-  /// Default keys that open a contextual menu.
+  /// 컨텍스트 메뉴를 여는 기본 키.
   static const List<LogicalKeyboardKey> defaultMenu = <LogicalKeyboardKey>[
     LogicalKeyboardKey.contextMenu,
   ];
 
-  /// Keys that move focus up.
+  /// 포커스를 위로 옮기는 키.
   final List<LogicalKeyboardKey> up;
 
-  /// Keys that move focus down.
+  /// 포커스를 아래로 옮기는 키.
   final List<LogicalKeyboardKey> down;
 
-  /// Keys that move focus left.
+  /// 포커스를 왼쪽으로 옮기는 키.
   final List<LogicalKeyboardKey> left;
 
-  /// Keys that move focus right.
+  /// 포커스를 오른쪽으로 옮기는 키.
   final List<LogicalKeyboardKey> right;
 
-  /// Keys that confirm / press the focused item.
+  /// 포커스된 칸을 확인 / 누르는 키.
   final List<LogicalKeyboardKey> select;
 
-  /// Keys that request back navigation.
+  /// 뒤로 가기를 요청하는 키.
   final List<LogicalKeyboardKey> back;
 
-  /// Keys that open a contextual menu.
+  /// 컨텍스트 메뉴를 여는 키.
   final List<LogicalKeyboardKey> menu;
 
-  /// Returns the [TraversalDirection] mapped to [key], or `null` if [key] is
-  /// not a directional key in this set.
+  /// [key]에 매핑된 [TraversalDirection]. 방향 키가 아니면 `null`.
   TraversalDirection? directionOf(LogicalKeyboardKey key) {
     if (up.contains(key)) {
       return TraversalDirection.up;
@@ -117,16 +114,16 @@ class DpadKeySet {
     return null;
   }
 
-  /// Whether [key] is a select key in this set.
+  /// [key]가 이 세트의 선택 키인지.
   bool isSelect(LogicalKeyboardKey key) => select.contains(key);
 
-  /// Whether [key] is a back key in this set.
+  /// [key]가 이 세트의 뒤로 가기 키인지.
   bool isBack(LogicalKeyboardKey key) => back.contains(key);
 
-  /// Whether [key] is a menu key in this set.
+  /// [key]가 이 세트의 메뉴 키인지.
   bool isMenu(LogicalKeyboardKey key) => menu.contains(key);
 
-  /// Creates a copy of this key set with the given fields replaced.
+  /// 지정한 필드만 바꾼 복사본을 만듭니다.
   DpadKeySet copyWith({
     List<LogicalKeyboardKey>? up,
     List<LogicalKeyboardKey>? down,

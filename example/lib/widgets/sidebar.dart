@@ -8,9 +8,8 @@ class SidebarDestination {
   final String label;
 }
 
-/// The classic TV navigation rail: a [DpadRegion] that expands while focus
-/// is inside it, remembers the selected destination, and never lets focus
-/// fall off the top or bottom of the screen.
+/// 전형적인 TV 내비게이션 레일: 포커스가 안에 있으면 펼쳐지고,
+/// 선택한 목적지를 기억하며, 화면 위·아래로 포커스가 떨어지지 않습니다.
 class Sidebar extends StatefulWidget {
   const Sidebar({
     super.key,
@@ -31,8 +30,8 @@ class _SidebarState extends State<Sidebar> {
   bool _expanded = false;
   double _bump = 0;
 
-  /// A little vertical "bump" when navigation hits a stop edge — the
-  /// visual cue TV users expect instead of silence.
+  /// stop 가장자리에 닿으면 살짝 세로로 "bump" — 침묵 대신 TV 사용자가
+  /// 기대하는 시각 피드백.
   Future<void> _onEdge(TraversalDirection direction) async {
     setState(() => _bump = direction == TraversalDirection.up ? -6 : 6);
     await Future<void>.delayed(const Duration(milliseconds: 90));
@@ -45,9 +44,10 @@ class _SidebarState extends State<Sidebar> {
   Widget build(BuildContext context) {
     return DpadRegion(
       debugLabel: 'sidebar',
-      // Up/down past the ends stays put: the remote never "falls off" the
-      // menu. Left is the screen edge; right leaves into the content.
+      // 끝에서 위/아래는 그대로: 리모컨이 메뉴에서 "떨어지지" 않음.
+      // 오른쪽은 콘텐츠로 나갑니다 (가로 stop이 영역 기본값이라 명시해야 함).
       verticalEdge: DpadEdgeBehavior.stop,
+      horizontalEdge: DpadEdgeBehavior.leave,
       onEdge: _onEdge,
       onFocusChange: (inside) => setState(() => _expanded = inside),
       child: AnimatedContainer(
@@ -67,7 +67,7 @@ class _SidebarState extends State<Sidebar> {
                 padding: EdgeInsets.only(
                     left: _expanded ? 12 : 0, bottom: 28),
                 child: Row(
-                  // Collapsed: the logo centers in the rail like the icons.
+                  // 접힌 상태: 로고가 아이콘처럼 레일 한가운데.
                   mainAxisAlignment: _expanded
                       ? MainAxisAlignment.start
                       : MainAxisAlignment.center,
@@ -98,14 +98,13 @@ class _SidebarState extends State<Sidebar> {
                   destination: widget.destinations[i],
                   selected: i == widget.selectedIndex,
                   expanded: _expanded,
-                  // The first destination is the region's landing item until
-                  // the user builds up focus memory.
+                  // 사용자가 포커스 메모리를 쌓기 전까지, 첫 목적지가 착지 칸.
                   entry: i == 0,
                   onFocused: () => widget.onSelected(i),
                   onSelect: () {
                     widget.onSelected(i);
-                    // Center press on a destination dives into the content —
-                    // programmatic navigation via the controller.
+                    // 목적지에서 가운데 버튼 → 콘텐츠로 들어감.
+                    // 컨트롤러로 프로그래밍 탐색.
                     Dpad.of(context).moveRight();
                   },
                 ),
@@ -142,9 +141,9 @@ class _SidebarItem extends StatelessWidget {
       child: DpadFocusable(
         entry: entry,
         debugLabel: 'sidebar:${destination.label}',
+        ttsLabel: destination.label,
         onSelect: onSelect,
-        // Browsing the menu switches the section immediately, like the
-        // launcher on Android TV.
+        // 메뉴를 훑으면 섹션이 바로 바뀜. Android TV 런처와 같음.
         onFocusChange: (focused) {
           if (focused) {
             onFocused();
@@ -170,8 +169,7 @@ class _SidebarItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
-              // Collapsed: a centered icon inside a symmetric highlight,
-              // not a left-hugging one.
+              // 접힌 상태: 왼쪽이 아니라 가운데 하이라이트 안의 아이콘.
               mainAxisAlignment: expanded
                   ? MainAxisAlignment.start
                   : MainAxisAlignment.center,

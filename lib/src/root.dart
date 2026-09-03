@@ -6,16 +6,17 @@ import 'package:flutter/widgets.dart';
 
 import 'key_set.dart';
 import 'marks.dart';
+import 'nav_policy.dart';
 import 'region.dart';
 import 'scroll.dart';
 import 'theme.dart';
 import 'traversal.dart';
+import 'tts.dart';
 
-/// The root of the d-pad system.
+/// D-pad 시스템의 루트.
 ///
-/// Place one [Dpad] above your pages — the recommended spot is
-/// [WidgetsApp.builder] / `MaterialApp.builder`, so every route, dialog and
-/// overlay is covered:
+/// 페이지 위에 [Dpad]를 하나 둡니다. 권장 위치는 [WidgetsApp.builder] /
+/// `MaterialApp.builder`입니다. 그래야 모든 라우트, 다이얼로그, 오버레이가 포함됩니다:
 ///
 /// ```dart
 /// MaterialApp(
@@ -24,25 +25,24 @@ import 'traversal.dart';
 /// )
 /// ```
 ///
-/// [Dpad] provides:
+/// [Dpad]가 제공하는 것:
 ///
-/// * **TV-correct directional navigation** for the whole subtree, via
-///   [DpadTraversalPolicy]. Works with arrow keys, remote d-pads and game
-///   controllers on every platform (including web, where Flutter does not
-///   map arrows to focus by default).
-/// * **Remote key semantics** — back and menu callbacks, plus app-level
-///   [shortcuts]. All of them automatically stand down while a text field
-///   is being edited, so typing is never hijacked.
-/// * **Focus resilience** — when the focused widget disappears (a list
-///   refreshes, a dialog closes) or the app resumes from background, focus
-///   is restored to the nearest sensible item instead of being lost, which
-///   would otherwise leave the remote dead.
-/// * **Programmatic control** through [Dpad.of]: `Dpad.of(context).moveDown()`,
-///   `.select()`, `.requestFocus(...)` and friends.
+/// * **TV에 맞는 방향 탐색** — 서브트리 전체에 [DpadTraversalPolicy].
+///   화살표 키, 리모컨 D-pad, 게임패드가 모든 플랫폼에서 동작합니다
+///   (웹 포함. Flutter는 기본적으로 화살표를 포커스에 매핑하지 않음).
+/// * **리모컨 키 의미** — 뒤로/메뉴 콜백과 앱 수준 [shortcuts].
+///   텍스트 필드를 편집하는 동안에는 자동으로 내려가, 입력을 가로채지 않습니다.
+/// * **포커스 복원** — 포커스된 위젯이 사라지거나(리스트 갱신, 다이얼로그 닫힘)
+///   앱이 백그라운드에서 돌아오면, 포커스를 잃지 않고 가까운 칸으로 복원합니다.
+///   그렇지 않으면 리모컨이 먹통이 됩니다.
+/// * **접근성 TTS** — [DpadTtsService]를 주입하고 칸에 [DpadFocusable.ttsLabel]을
+///   두면, 포커스를 받을 때 라벨을 읽습니다.
+/// * **프로그래밍 제어** — [Dpad.of]: `Dpad.of(context).moveDown()`,
+///   `.select()`, `.requestFocus(...)`, `.requestFirstFocus()`.
 ///
-/// Styling defaults for all [DpadFocusable]s live in [theme].
+/// 모든 [DpadFocusable]의 스타일 기본값은 [theme]에 있습니다.
 class Dpad extends StatefulWidget {
-  /// Creates the d-pad root around [child].
+  /// [child]을 감싸는 D-pad 루트를 만듭니다.
   const Dpad({
     super.key,
     required this.child,
@@ -52,41 +52,40 @@ class Dpad extends StatefulWidget {
     this.onBack,
     this.onMenu,
     this.onFocusChange,
+    this.ttsService,
     this.shortcuts = const <LogicalKeyboardKey, VoidCallback>{},
     this.restoreFocus = true,
     this.debugOverlay = false,
+    this.navPolicy = DpadNavPolicy.tv,
   });
 
-  /// The subtree to control. Usually the app's `Navigator` (via
-  /// `MaterialApp.builder`) or the whole `MaterialApp`.
+  /// 제어할 서브트리. 보통 앱의 `Navigator` (`MaterialApp.builder`를 통해)
+  /// 또는 `MaterialApp` 전체입니다.
   final Widget child;
 
-  /// When `false`, [Dpad] only provides its scope ([Dpad.of] keeps working)
-  /// and leaves key handling untouched.
+  /// `false`이면 [Dpad]는 스코프만 제공합니다 ([Dpad.of]는 동작).
+  /// 키 처리는 건드리지 않습니다.
   final bool enabled;
 
-  /// The remote-key mapping. See [DpadKeySet].
+  /// 리모컨 키 매핑. [DpadKeySet]을 보세요.
   final DpadKeySet keySet;
 
-  /// Default styling and timing for descendant [DpadFocusable]s.
+  /// 자손 [DpadFocusable]의 기본 스타일과 타이밍.
   final DpadThemeData? theme;
 
-  /// Called when a back key ([DpadKeySet.back]) is pressed.
+  /// 뒤로 키 ([DpadKeySet.back])가 눌렸을 때 호출됩니다.
   ///
-  /// Return `true` to consume the press. Return `false` to let the
-  /// framework continue (dismissing dialogs, popping routes on platforms
-  /// that deliver back as a key event). When null, back keys are not
-  /// intercepted at all.
+  /// `true`를 반환하면 키를 소비합니다. `false`면 프레임워크가 계속합니다
+  /// (다이얼로그 닫기, 뒤로를 키 이벤트로 주는 플랫폼에서 라우트 pop).
+  /// null이면 뒤로 키를 가로채지 않습니다.
   final bool Function()? onBack;
 
-  /// Called when a menu key ([DpadKeySet.menu]) is pressed.
+  /// 메뉴 키 ([DpadKeySet.menu])가 눌렸을 때 호출됩니다.
   final VoidCallback? onMenu;
 
-  /// Called on every focus change with the newly focused node (or `null`
-  /// when nothing real is focused).
+  /// 포커스가 바뀔 때마다 새 노드를 받습니다 (실제 포커스가 없으면 `null`).
   ///
-  /// The natural place for the app-wide focus "tick" sound, haptics or
-  /// analytics:
+  /// 앱 전역 포커스 "틱" 사운드, 햅틱, 분석에 자연스러운 자리입니다:
   ///
   /// ```dart
   /// Dpad.wrap(
@@ -97,32 +96,54 @@ class Dpad extends StatefulWidget {
   /// ```
   final ValueChanged<FocusNode?>? onFocusChange;
 
-  /// App-level key shortcuts, e.g. a search key or color buttons.
+  /// 칸이 포커스를 받을 때 [DpadFocusable.ttsLabel]을 읽는 접근성 백엔드.
+  /// null이면 안내하지 않습니다 (기본값).
   ///
-  /// Suspended automatically while a text field is focused.
+  /// ```dart
+  /// Dpad.wrap(
+  ///   ttsService: MyTtsService(),
+  /// )
+  /// ```
+  final DpadTtsService? ttsService;
+
+  /// 앱 수준 키 단축키. 예: 검색 키, 컬러 버튼.
+  ///
+  /// 텍스트 필드가 포커스되면 자동으로 일시 중지됩니다.
   final Map<LogicalKeyboardKey, VoidCallback> shortcuts;
 
-  /// Whether the d-pad system keeps focus alive on its own. Defaults to
-  /// `true`, which guarantees:
+  /// D-pad 시스템이 스스로 포커스를 살릴지. 기본값 `true`이며 다음을 보장합니다:
   ///
-  /// * the app starts with something focused (an `autofocus` item wins);
-  /// * a route pushed without `autofocus` still receives an initial focus;
-  /// * disposing the focused widget moves focus to its nearest surviving
-  ///   neighbor;
-  /// * resuming from background restores the previous focus.
+  /// * 앱이 시작할 때 무언가에 포커스가 있음 (`autofocus` 칸이 이김);
+  /// * `autofocus` 없는 라우트에도 초기 포커스가 감;
+  /// * 화면이 바뀌어도 보이는 포커스가 사라지지 않음. 다음 키를 기다리지 않고
+  ///   [DpadFocusable.autofocus] / [DpadRegion.autofocus] / entry 칸으로 착지.
+  ///   기하학적인 왼쪽 위(헤더 "처음으로" 등)는 지정한 칸이 없을 때만 씁니다;
+  /// * 포커스된 위젯이 dispose되면 가장 가까운 남은 이웃으로 이동 —
+  ///   맞는 칸이 없으면 지정한 시작 칸, 그다음 왼쪽 위.
+  ///   **아이들 타임아웃은 없습니다.** 잠시 뒤 첫 칸으로 점프한다면
+  ///   이 복원 경로입니다 (리스트가 리빌드되었거나 현재 노드가 unfocus됨);
+  /// * 백그라운드에서 돌아오면 이전 포커스를 복원.
+  ///
+  /// `false`여도 **화면(라우트)이 바뀌면** 이전 페이지 포커스를 유지하지
+  /// 않습니다. 새 페이지의 `autofocus` 칸, 없으면 그 페이지 첫 칸에
+  /// 착지합니다. 리스트 칸이 사라진 뒤 이웃으로 옮기는 동작만 꺼집니다.
   final bool restoreFocus;
 
-  /// Paints a developer overlay outlining the focused node with its label
-  /// and geometry — focus bugs on TV are invisible without it.
+  /// 방향키 탐색 방식. 기본값은 [DpadNavPolicy.tv]입니다.
+  /// 키오스크는 [DpadNavPolicy.kiosk]를 씁니다.
+  final DpadNavPolicy navPolicy;
+
+  /// 포커스된 노드의 라벨과 기하를 그리는 개발자 오버레이.
+  /// TV 포커스 버그는 이것 없이는 보이지 않습니다.
   ///
-  /// Enable it for debug builds only:
+  /// 디버그 빌드에서만 켜세요:
   ///
   /// ```dart
   /// Dpad.wrap(debugOverlay: kDebugMode)
   /// ```
   final bool debugOverlay;
 
-  /// The [DpadController] of the closest [Dpad] ancestor.
+  /// 가장 가까운 조상 [Dpad]의 [DpadController].
   static DpadController of(BuildContext context) {
     final DpadController? controller = maybeOf(context);
     assert(
@@ -134,19 +155,18 @@ class Dpad extends StatefulWidget {
     return controller!;
   }
 
-  /// The [DpadController] of the closest [Dpad] ancestor, if any.
+  /// 가장 가까운 조상 [Dpad]의 [DpadController]. 없으면 `null`.
   static DpadController? maybeOf(BuildContext context) {
     return context.getInheritedWidgetOfExactType<_DpadScope>()?.controller;
   }
 
-  /// The active [DpadKeySet] for [context], falling back to the defaults
-  /// when no [Dpad] ancestor exists.
+  /// [context]의 활성 [DpadKeySet]. [Dpad] 조상이 없으면 기본값.
   static DpadKeySet keySetOf(BuildContext context) {
     return context.getInheritedWidgetOfExactType<_DpadScope>()?.keySet ??
         const DpadKeySet();
   }
 
-  /// Convenience for installing [Dpad] through `MaterialApp.builder`:
+  /// `MaterialApp.builder`로 [Dpad]를 설치하는 편의 메서드:
   ///
   /// ```dart
   /// MaterialApp(
@@ -161,10 +181,12 @@ class Dpad extends StatefulWidget {
     bool Function()? onBack,
     VoidCallback? onMenu,
     ValueChanged<FocusNode?>? onFocusChange,
+    DpadTtsService? ttsService,
     Map<LogicalKeyboardKey, VoidCallback> shortcuts =
         const <LogicalKeyboardKey, VoidCallback>{},
     bool restoreFocus = true,
     bool debugOverlay = false,
+    DpadNavPolicy navPolicy = DpadNavPolicy.tv,
   }) {
     return (BuildContext context, Widget? child) {
       return Dpad(
@@ -174,9 +196,11 @@ class Dpad extends StatefulWidget {
         onBack: onBack,
         onMenu: onMenu,
         onFocusChange: onFocusChange,
+        ttsService: ttsService,
         shortcuts: shortcuts,
         restoreFocus: restoreFocus,
         debugOverlay: debugOverlay,
+        navPolicy: navPolicy,
         child: child ?? const SizedBox.shrink(),
       );
     };
@@ -192,15 +216,20 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
   FocusNode? _lastFocus;
   Rect? _lastRect;
+  FocusScopeNode? _lastDrivableScope;
   bool _restoreScheduled = false;
+  bool _fallbackFocus = false;
+  bool _restoring = false;
+  int _restoreAttempts = 0;
+  int _ttsAnnounceEpoch = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     FocusManager.instance.addListener(_handleGlobalFocusChange);
-    // A TV app must always have a visible focus, even before the first key
-    // press; otherwise remote events have no anchor to dispatch through.
+    // TV 앱은 첫 키를 누르기 전에도 보이는 포커스가 있어야 합니다.
+    // 없으면 리모컨 이벤트를 전달할 앵커가 없습니다.
     _scheduleRestore(resumed: true);
   }
 
@@ -212,21 +241,54 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
   }
 
   // -----------------------------------------------------------------------
-  // Focus resilience
+  // 포커스 복원
   // -----------------------------------------------------------------------
 
   void _handleGlobalFocusChange() {
     final FocusNode? primary = FocusManager.instance.primaryFocus;
-    if (primary != null && primary is! FocusScopeNode) {
+    if (DpadMarks.isDrivable(primary)) {
+      if (!_restoring) {
+        _fallbackFocus = false;
+      }
       _lastFocus = primary;
-      _lastRect = DpadMarks.rectOf(primary) ?? _lastRect;
+      _lastRect = DpadMarks.rectOf(primary!) ?? _lastRect;
+      _lastDrivableScope = primary.nearestScope;
+      _restoreAttempts = 0;
       widget.onFocusChange?.call(primary);
+      _announceFocus(primary);
       return;
     }
-    widget.onFocusChange?.call(null);
-    if (widget.restoreFocus && widget.enabled) {
+    if (primary != null && primary is! FocusScopeNode) {
+      widget.onFocusChange?.call(primary);
+    } else {
+      widget.onFocusChange?.call(null);
+    }
+    widget.ttsService?.stop();
+    if (widget.enabled) {
       _scheduleRestore();
     }
+  }
+
+  void _announceFocus(FocusNode node) {
+    final DpadTtsService? tts = widget.ttsService;
+    if (tts == null) {
+      return;
+    }
+    final String? label = DpadMarks.ttsLabel[node];
+    final int epoch = ++_ttsAnnounceEpoch;
+    // 키/포커스 처리와 같은 턴에서 플랫폼 TTS를 부르면 Windows SAPI가
+    // 메시지 루프를 막아, 다음 프레임(하이라이트)까지  ent습니다.
+    // 이번 프레임을 그린 뒤에 최신 라벨만 읽습니다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || epoch != _ttsAnnounceEpoch) {
+        return;
+      }
+      if (label == null || label.isEmpty) {
+        tts.stop();
+        return;
+      }
+      tts.speak(label);
+    });
   }
 
   @override
@@ -245,11 +307,11 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
     }
     _restoreScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // The microtask hop lets pending `autofocus` and explicit focus
-      // requests settle first, so they always win over the fallback.
+      // 마이크로태스크 hop으로 대기 중인 `autofocus`와 명시적 포커스 요청이
+      // 먼저 자리 잡게 해, 폴백보다 항상 이기게 합니다.
       scheduleMicrotask(() {
         _restoreScheduled = false;
-        if (mounted && widget.enabled && widget.restoreFocus) {
+        if (mounted && widget.enabled) {
           _restoreFocus(resumed: resumed);
         }
       });
@@ -259,42 +321,92 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
   void _restoreFocus({required bool resumed}) {
     final FocusNode? primary = FocusManager.instance.primaryFocus;
-    if (primary != null && primary is! FocusScopeNode) {
-      return; // Something real took focus in the meantime.
+    if (DpadMarks.isDrivable(primary)) {
+      return;
     }
-    final FocusScopeNode scope =
-        primary is FocusScopeNode ? primary : FocusManager.instance.rootScope;
+    final FocusScopeNode scope = primary is FocusScopeNode
+        ? primary
+        : (primary?.nearestScope ?? FocusManager.instance.rootScope);
 
     final FocusNode? last = _lastFocus;
-    final bool lastUsable = DpadMarks.isUsable(last);
-    if (lastUsable) {
-      if (resumed) {
-        // Coming back from background: return to where the user was.
-        last!.requestFocus();
-        return;
-      }
-      if (identical(last!.nearestScope, scope)) {
-        // The unfocus was deliberate (e.g. dismissing a text field) —
-        // leave it alone.
-        return;
-      }
-      // A different scope holds focus with no focused child: a route was
-      // pushed without an autofocus. Give it an initial focus below.
-    }
+    final bool lastDrivable = DpadMarks.isDrivable(last);
+    final FocusScopeNode? previousScope =
+        lastDrivable ? last!.nearestScope : _lastDrivableScope;
+    final bool sameScope =
+        lastDrivable && identical(previousScope, scope);
+    final bool crossedRoute =
+        previousScope != null && !identical(previousScope, scope);
 
-    final List<FocusNode> candidates = scope.traversalDescendants.toList();
-    if (candidates.isEmpty) {
+    // 키 리스너처럼 skipTraversal 노드가 primary를 가져가도, 있던 칸을
+    // 숨기지 않고 바로 되돌립니다. 다음 입력을 기다리지 않습니다.
+    if (primary != null &&
+        primary.skipTraversal &&
+        lastDrivable &&
+        sameScope) {
+      _focusRestored(last!, fallback: false);
       return;
     }
 
+    // Navigator.push 등으로 화면이 바뀌면 이전 페이지 칸을 유지하지 않습니다.
+    // 새 스코프의 autofocus / 첫 칸(또는 pop이면 기억된 focusedChild)에 착지.
+    if (crossedRoute) {
+      _landOnScope(scope, preferNearby: false);
+      return;
+    }
+
+    if (lastDrivable) {
+      if (resumed) {
+        _focusRestored(last!, fallback: false);
+        return;
+      }
+      if (sameScope) {
+        // unfocus가 의도적임 (예: clearFocus, 텍스트 필드 닫기).
+        return;
+      }
+    }
+
+    if (!widget.restoreFocus && !resumed) {
+      return;
+    }
+
+    _landOnScope(scope, preferNearby: widget.restoreFocus);
+  }
+
+  void _landOnScope(FocusScopeNode scope, {required bool preferNearby}) {
+    FocusNode? remembered = scope.focusedChild;
+    while (remembered != null &&
+        remembered is FocusScopeNode &&
+        !DpadMarks.isDrivable(remembered)) {
+      remembered = remembered.focusedChild;
+    }
+    if (DpadMarks.isDrivable(remembered)) {
+      _focusRestored(remembered!, fallback: false);
+      return;
+    }
+
+    final List<FocusNode> candidates = scope.traversalDescendants
+        .where((FocusNode node) => DpadMarks.isDrivable(node))
+        .toList();
+    if (candidates.isEmpty) {
+      if (_restoreAttempts < 4) {
+        _restoreAttempts++;
+        _scheduleRestore();
+      }
+      return;
+    }
+    _restoreAttempts = 0;
+
     FocusNode? target;
-    // Only bias towards the old position when the focused widget actually
-    // died in place (list refresh); for fresh scopes use the entry /
-    // top-left item.
-    final bool lastDetached = last != null && !lastUsable;
+    // 리스트 칸이 그 자리에서 죽은 경우에만 옛 위치로 치우칩니다.
+    // 거리가 칸 크기보다 훨씬 크면 화면이 바뀐 것으로 보고, 크롬(처음으로)
+    // 대신 autofocus / entry를 씁니다.
+    final FocusNode? last = _lastFocus;
+    final bool lastDetached = last != null && !DpadMarks.isDrivable(last);
     final Rect? memory = _lastRect;
-    if (lastDetached && memory != null) {
+    if (preferNearby && lastDetached && memory != null) {
+      FocusNode? nearby;
       double best = double.infinity;
+      Rect? nearbyRect;
       for (final FocusNode node in candidates) {
         final Rect? rect = DpadMarks.rectOf(node);
         if (rect == null) {
@@ -303,17 +415,34 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
         final double distance = (rect.center - memory.center).distanceSquared;
         if (distance < best) {
           best = distance;
-          target = node;
+          nearby = node;
+          nearbyRect = rect;
+        }
+      }
+      if (nearby != null && nearbyRect != null) {
+        final double span = nearbyRect.longestSide * 1.5;
+        if ((nearbyRect.center - memory.center).distance <= span) {
+          target = nearby;
         }
       }
     }
-    target ??= DpadMarks.initialCandidate(candidates) ?? candidates.first;
+    target ??= DpadMarks.preferredInitial(candidates) ?? candidates.first;
+    final bool fallback = DpadMarks.autofocus[target] != true &&
+        DpadMarks.entry[target] != true;
+    _focusRestored(target, fallback: fallback);
+  }
+
+  void _focusRestored(FocusNode target, {required bool fallback}) {
+    _restoring = true;
+    _fallbackFocus = fallback;
     DpadRegion.ofNode(target)?.noteFocus(target);
     target.requestFocus();
+    _lastDrivableScope = target.nearestScope;
+    _restoring = false;
   }
 
   // -----------------------------------------------------------------------
-  // Key handling
+  // 키 처리
   // -----------------------------------------------------------------------
 
   EditableTextState? get _focusedEditable {
@@ -327,9 +456,9 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
   bool get _keysActive => widget.enabled && _focusedEditable == null;
 
-  /// TV-correct arrow handling inside text fields: arrows edit the caret
-  /// in the middle of text, but *leave* the field when there is nowhere
-  /// left to go — otherwise a remote-only user is trapped in the field.
+  /// 텍스트 필드 안에서의 TV식 화살표: 텍스트 중간에서는 캐럿을 움직이고,
+  /// 더 갈 곳이 없으면 *필드를 떠납니다* — 그렇지 않으면 리모컨만 쓰는
+  /// 사용자가 필드에 갇힙니다.
   bool _directionAllowed(TraversalDirection direction) {
     if (!widget.enabled) {
       return false;
@@ -340,13 +469,13 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
     }
     final TextEditingValue value = editable.textEditingValue;
     if (value.composing.isValid) {
-      return false; // The IME owns every key while composing.
+      return false; // 조합 중에는 IME가 모든 키를 소유.
     }
     final TextSelection selection = value.selection;
     switch (direction) {
       case TraversalDirection.up:
       case TraversalDirection.down:
-        // Single-line fields have no vertical caret movement: navigate.
+        // 한 줄 필드는 세로 캐럿 이동이 없음: 탐색으로 넘김.
         return editable.widget.maxLines == 1;
       case TraversalDirection.left:
         return selection.isValid &&
@@ -361,11 +490,12 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
   bool _move(TraversalDirection direction) {
     final FocusNode? primary = FocusManager.instance.primaryFocus;
-    if (primary == null || primary.context == null) {
+    if (!DpadMarks.isDrivable(primary)) {
       _restoreFocus(resumed: true);
       return true;
     }
-    return primary.focusInDirection(direction);
+    _fallbackFocus = false;
+    return primary!.focusInDirection(direction);
   }
 
   Map<ShortcutActivator, Intent> _buildShortcuts() {
@@ -399,11 +529,12 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // The tree below is structurally identical for every configuration, so
-    // flipping `enabled` or `debugOverlay` at runtime never reparents (and
-    // thereby resets) the application subtree. Disabled branches are inert
-    // instead of absent.
-    return _DpadScope(
+    // 아래 트리는 설정과 관계없이 구조가 같습니다. 런타임에 `enabled`나
+    // `debugOverlay`를 바꿔도 앱 서브트리를 재부모화(그리고 리셋)하지 않습니다.
+    // 비활성 분기는 없는 게 아니라 동작만 멈춘 상태입니다.
+    return DpadNavScope(
+      policy: widget.navPolicy,
+      child: _DpadScope(
       controller: _controller,
       keySet: widget.keySet,
       child: Stack(
@@ -437,6 +568,7 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -455,8 +587,8 @@ class _DpadDebugOverlayState extends State<_DpadDebugOverlay>
   @override
   void initState() {
     super.initState();
-    // Repaint every frame: the focused rect moves during scrolling and
-    // animations, not just on focus changes. Debug-tool overhead only.
+    // 매 프레임 다시 그립니다. 포커스 박스는 포커스 변경뿐 아니라
+    // 스크롤·애니메이션 중에도 움직입니다. 디버그 도구 오버헤드만.
     _ticker = createTicker((_) => setState(() {}))..start();
   }
 
@@ -541,7 +673,7 @@ class _DpadScope extends InheritedWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Intents & actions
+// Intent와 Action
 // ---------------------------------------------------------------------------
 
 class _DpadDirectionalIntent extends Intent {
@@ -635,53 +767,53 @@ class _DpadCallbackAction extends Action<_DpadCallbackIntent> {
 }
 
 // ---------------------------------------------------------------------------
-// Controller
+// 컨트롤러
 // ---------------------------------------------------------------------------
 
-/// Programmatic d-pad control, obtained with [Dpad.of].
+/// [Dpad.of]로 얻는 프로그래밍 D-pad 제어.
 ///
 /// ```dart
 /// final dpad = Dpad.of(context);
 /// dpad.moveDown();
 /// dpad.select();
 /// dpad.requestFocus(searchFieldNode);
+/// dpad.requestFirstFocus(menuRegionContext);
 /// ```
 class DpadController {
   DpadController._(this._state);
 
   final _DpadState _state;
 
-  /// The node that currently holds focus, or `null` when nothing real is
-  /// focused.
+  /// 지금 포커스를 가진 노드. 실제 포커스가 없으면 `null`.
   FocusNode? get focused {
     final FocusNode? primary = FocusManager.instance.primaryFocus;
     return primary is FocusScopeNode ? null : primary;
   }
 
-  /// Moves focus one step in [direction], exactly like a remote key press.
-  /// Returns whether focus moved (or the press was meaningfully consumed).
+  /// 리모컨 키를 누른 것과 같이 [direction]으로 포커스를 한 칸 옮깁니다.
+  /// 포커스가 움직였거나 키가 의미 있게 소비되었으면 `true`.
   bool move(TraversalDirection direction) => _state._move(direction);
 
-  /// Moves focus up. Equivalent to `move(TraversalDirection.up)`.
+  /// 포커스를 위로. `move(TraversalDirection.up)`와 같습니다.
   bool moveUp() => move(TraversalDirection.up);
 
-  /// Moves focus down. Equivalent to `move(TraversalDirection.down)`.
+  /// 포커스를 아래로. `move(TraversalDirection.down)`와 같습니다.
   bool moveDown() => move(TraversalDirection.down);
 
-  /// Moves focus left. Equivalent to `move(TraversalDirection.left)`.
+  /// 포커스를 왼쪽으로. `move(TraversalDirection.left)`와 같습니다.
   bool moveLeft() => move(TraversalDirection.left);
 
-  /// Moves focus right. Equivalent to `move(TraversalDirection.right)`.
+  /// 포커스를 오른쪽으로. `move(TraversalDirection.right)`와 같습니다.
   bool moveRight() => move(TraversalDirection.right);
 
-  /// Moves focus to the next item in reading order (like Tab).
+  /// 읽기 순서의 다음 칸으로 (Tab과 같음).
   bool next() => focused?.nextFocus() ?? false;
 
-  /// Moves focus to the previous item in reading order (like Shift+Tab).
+  /// 읽기 순서의 이전 칸으로 (Shift+Tab과 같음).
   bool previous() => focused?.previousFocus() ?? false;
 
-  /// Activates the focused item — the programmatic equivalent of pressing
-  /// the remote's center button. Returns whether something handled it.
+  /// 포커스된 칸을 활성화합니다 — 리모컨 가운데 버튼을 누른 것과 같습니다.
+  /// 무언가가 처리했으면 `true`.
   bool select() {
     final BuildContext? context = focused?.context;
     if (context == null || !context.mounted) {
@@ -694,26 +826,64 @@ class DpadController {
     return true;
   }
 
-  /// Runs the [Dpad.onBack] handler. Returns whether it consumed the event.
+  /// [Dpad.onBack] 핸들러를 실행합니다. 이벤트를 소비했으면 `true`.
   bool back() => _state.widget.onBack?.call() ?? false;
 
-  /// Focuses [node] if it can currently receive focus.
+  /// 지금 포커스를 받을 수 있으면 [node]에 포커스를 지정합니다.
+  /// 영역 메모리도 함께 갱신합니다.
+  ///
+  /// ```dart
+  /// Dpad.of(context).requestFocus(confirmButtonNode);
+  /// ```
   bool requestFocus(FocusNode node) {
     if (!DpadMarks.isUsable(node)) {
       return false;
     }
+    _state._fallbackFocus = false;
     DpadRegion.ofNode(node)?.noteFocus(node);
     node.requestFocus();
     return true;
   }
 
-  /// Removes focus from the currently focused item.
+  /// [DpadFocusable.autofocus] 칸이 나타났을 때 호출됩니다.
+  ///
+  /// 같은 화면(포커스 스코프)에 이미 사용자가 고른 칸이 있으면 건드리지
+  /// 않습니다. 새 라우트·다이얼로그처럼 **다른 스코프**에서 클레임하면
+  /// 이전 페이지 포커스를 가져옵니다.
+  /// 복원이 왼쪽 위 크롬으로 떨어진 뒤(`_fallbackFocus`)에도 가져갑니다.
+  bool claimAutofocus(FocusNode node) {
+    if (!DpadMarks.isUsable(node)) {
+      return false;
+    }
+    final FocusNode? current = focused;
+    if (DpadMarks.isDrivable(current) && !_state._fallbackFocus) {
+      if (identical(current!.nearestScope, node.nearestScope)) {
+        return true;
+      }
+    }
+    return requestFocus(node);
+  }
+
+  /// [context]가 속한 [DpadRegion]의 첫 칸에 포커스를 줍니다.
+  /// [context]가 없으면 현재 포커스가 속한 영역을 씁니다.
+  ///
+  /// ```dart
+  /// Dpad.of(context).requestFirstFocus(menuGridContext);
+  /// ```
+  bool requestFirstFocus([BuildContext? context]) {
+    _state._fallbackFocus = false;
+    final DpadRegionState? region = context != null
+        ? DpadRegion.maybeOf(context)
+        : (focused == null ? null : DpadRegion.ofNode(focused!));
+    return region?.requestFirstFocus() ?? false;
+  }
+
+  /// 지금 포커스된 칸에서 포커스를 뗍니다.
   void clearFocus() {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  /// Scrolls [node] (or the currently focused node) fully into view,
-  /// keeping room for focus effects.
+  /// [node] (또는 현재 포커스된 노드)를 이펙트 여백을 두고 완전히 보이게 스크롤합니다.
   void ensureVisible({
     FocusNode? node,
     double padding = 48.0,

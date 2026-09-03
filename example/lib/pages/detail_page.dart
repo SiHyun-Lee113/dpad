@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../widgets/tv_button.dart';
 
-/// The title page pushed when a poster is selected.
+/// 포스터를 선택하면 push되는 타이틀 페이지.
 ///
-/// Note what you get for free: when this route pops, focus lands back on
-/// the exact poster that opened it.
+/// 공짜로 얻는 것: 이 라우트가 pop되면 포커스가 연 바로 그 포스터로 돌아갑니다.
 class DetailPage extends StatelessWidget {
   const DetailPage({super.key, required this.movie});
 
@@ -110,7 +109,7 @@ class DetailPage extends StatelessWidget {
               debugLabel: 'episodes',
               horizontalEdge: DpadEdgeBehavior.wrap,
               child: SizedBox(
-                // Card height plus headroom so focus effects never clip.
+                // 카드 높이 + 여유. 포커스 이펙트가 잘리지 않게.
                 height: 96 + 28,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -163,6 +162,7 @@ class _EpisodeCard extends StatelessWidget {
       padding: const EdgeInsets.only(right: 14),
       child: DpadFocusable(
         onSelect: onSelect,
+        ttsLabel: 'Episode ${index + 1}',
         child: Container(
           width: 168,
           padding: const EdgeInsets.all(14),

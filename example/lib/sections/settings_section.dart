@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 
-/// Settings patterns for TV:
+/// TV용 설정 패턴:
 ///
-/// * a [DpadTheme] override styling every row in the subtree at once,
-/// * toggle rows driven by [DpadFocusable.onSelect],
-/// * a disabled row that navigation skips,
-/// * a volume slider consuming left/right via [DpadFocusable.onDirection],
-/// * programmatic focus with [DpadController.requestFocus],
-/// * a live focus-effect gallery (including a [DpadCustomEffect]),
-/// * runtime toggles for the focus inspector and click sounds.
+/// * 서브트리 모든 줄을 한 번에 꾸미는 [DpadTheme] 오버라이드,
+/// * [DpadFocusable.onSelect]로 동작하는 토글 줄,
+/// * 탐색이 건너뛰는 비활성 줄,
+/// * [DpadFocusable.onDirection]으로 좌/우를 소비하는 볼륨 슬라이더,
+/// * [DpadController.requestFocus]로 프로그래밍 포커스,
+/// * 실시간 포커스 이펙트 갤러리 ([DpadCustomEffect] 포함),
+/// * 포커스 인스펙터·클릭 소리 런타임 토글.
 class SettingsSection extends StatefulWidget {
   const SettingsSection({super.key});
 
@@ -25,8 +25,8 @@ class _SettingsSectionState extends State<SettingsSection> {
   int _volume = 12;
   int _effectIndex = 0;
 
-  /// An external focus node, so "Jump to volume" can demonstrate
-  /// `Dpad.of(context).requestFocus(...)`.
+  /// 외부 포커스 노드. "Jump to volume"이
+  /// `Dpad.of(context).requestFocus(...)`를 보여 줍니다.
   final FocusNode _volumeNode = FocusNode(debugLabel: 'volume');
 
   static const List<(String, List<DpadEffect>)> _effectChoices = [
@@ -35,7 +35,7 @@ class _SettingsSectionState extends State<SettingsSection> {
     ('Elevation', [DpadScaleEffect(scale: 1.04), DpadElevationEffect()]),
     ('Spotlight', [DpadOpacityEffect(idleOpacity: 0.45)]),
     ('Tint', [DpadTintEffect()]),
-    // Anything you can express as a builder can be an effect:
+    // builder로 표현할 수 있으면 이펙트가 됩니다:
     ('Custom', [DpadCustomEffect(_underlineEffect)]),
   ];
 
@@ -81,8 +81,9 @@ class _SettingsSectionState extends State<SettingsSection> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
-            // Programmatic focus: jump straight to the volume slider.
+            // 프로그래밍 포커스: 볼륨 슬라이더로 바로 점프.
             DpadFocusable(
+              ttsLabel: 'Jump to volume',
               onSelect: () => Dpad.of(context).requestFocus(_volumeNode),
               effects: const [DpadBorderEffect()],
               child: const Padding(
@@ -96,8 +97,8 @@ class _SettingsSectionState extends State<SettingsSection> {
           ],
         ),
         const SizedBox(height: 12),
-        // One DpadTheme styles every focusable in this subtree — no
-        // per-item `effects:` needed.
+        // 이 서브트리의 모든 포커스 칸을 DpadTheme 하나로 꾸밉니다.
+        // 칸마다 `effects:`가 필요 없습니다.
         DpadTheme(
           data: const DpadThemeData(
             effects: [DpadTintEffect(opacity: 0.16)],
@@ -120,7 +121,7 @@ class _SettingsSectionState extends State<SettingsSection> {
                   value: _subtitles,
                   onChanged: (value) => setState(() => _subtitles = value),
                 ),
-                // Disabled items are skipped by navigation entirely.
+                // 비활성 칸은 탐색에서 완전히 건너뜁니다.
                 _ToggleRow(
                   icon: Icons.lock_outline_rounded,
                   title: 'Parental controls (coming soon)',
@@ -151,6 +152,20 @@ class _SettingsSectionState extends State<SettingsSection> {
                     onChanged: (v) => showFocusInspector.value = v,
                   ),
                 ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: appTts.enabled,
+                  builder: (context, value, _) => _ToggleRow(
+                    icon: Icons.record_voice_over_rounded,
+                    title: 'TTS captions (DpadTtsService)',
+                    value: value,
+                    onChanged: (v) {
+                      appTts.enabled.value = v;
+                      if (!v) {
+                        appTts.stop();
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -169,7 +184,7 @@ class _SettingsSectionState extends State<SettingsSection> {
         const SizedBox(height: 12),
         DpadRegion(
           debugLabel: 'settings-effects',
-          // Carousel-style wrap, and plain geometric entry from outside.
+          // 캐러셀식 wrap, 바깥에서 들어올 때는 기하적으로 가까운 칸.
           horizontalEdge: DpadEdgeBehavior.wrap,
           enter: DpadEnterBehavior.nearest,
           child: Wrap(
@@ -178,6 +193,7 @@ class _SettingsSectionState extends State<SettingsSection> {
             children: [
               for (int i = 0; i < _effectChoices.length; i++)
                 DpadFocusable(
+                  ttsLabel: _effectChoices[i].$1,
                   onSelect: () => setState(() => _effectIndex = i),
                   builder: (context, state, child) {
                     final selected = i == _effectIndex;
@@ -215,6 +231,7 @@ class _SettingsSectionState extends State<SettingsSection> {
         Center(
           child: DpadFocusable(
             effects: _effectChoices[_effectIndex].$2,
+            ttsLabel: 'Preview, ${_effectChoices[_effectIndex].$1}',
             onSelect: () {},
             child: Container(
               width: 320,
@@ -238,7 +255,7 @@ class _SettingsSectionState extends State<SettingsSection> {
         const Center(
           child: Text(
             'Hold SELECT on any poster for options · MENU or F1 for help · '
-            'H / L / S jump between sections',
+            'H / L / S / D jump between sections',
             style: TextStyle(color: Colors.white38, fontSize: 12),
           ),
         ),
@@ -271,6 +288,7 @@ class _ToggleRow extends StatelessWidget {
       child: DpadFocusable(
         autofocus: autofocus,
         enabled: enabled,
+        ttsLabel: title,
         onSelect: () => onChanged(!value),
         child: Opacity(
           opacity: enabled ? 1 : 0.4,
@@ -317,8 +335,9 @@ class _VolumeRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: DpadFocusable(
         focusNode: focusNode,
-        // Left/right adjust the value instead of moving focus; up/down
-        // still navigate away. The standard TV slider interaction.
+        ttsLabel: 'Volume $volume',
+        // 좌/우는 값을 바꾸고 포커스는 유지. 상/하는 떠남.
+        // 전형적인 TV 슬라이더.
         onDirection: (direction) {
           switch (direction) {
             case TraversalDirection.left:

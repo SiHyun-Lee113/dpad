@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **`DpadRegionFlow.readingOrder`** — left/right walk a region's items in
+  reading order (including 4 → 5 in a 4×2 grid) and wrap last → first.
+  Up/down leave the region via `verticalEdge` instead of moving to the
+  cell below.
+- **Region handoff** — leaving a region picks the nearest `DpadRegion` in
+  that direction (not the first item hit by a straight beam) and **always
+  lands on that region's first item**.
+- **`DpadController.requestFirstFocus`** / **`DpadRegionState.requestFirstFocus`**
+  — programmatically focus a region's first item. `requestFocus(node)`
+  still jumps to any usable node.
+- **Preferred first focus** — `DpadFocusable.autofocus` and
+  `DpadRegion.autofocus` win over geometric top-left chrome (e.g. a
+  kiosk "처음으로" button). Screen changes keep a visible focus without
+  waiting for the next key; `skipTraversal` listeners are not treated as
+  a focused tile. Restore still uses nearby geometry for in-place list
+  updates.
+- **`DpadBorderEffect.fillColor`** / **`strokeAlign`** — overlay fill plus
+  an inside-aligned border, matching kiosk barrier-free focus highlights.
+- **`DpadNavPolicy.kiosk`** — left/right stay inside the current region
+  and wrap both ways (last → first, first → last). Up/down move between
+  regions on screen and wrap both ways. A region (or screen) with a
+  single focusable does not move.
+- **`DpadRegionKind.list` / `item`** — a vertical list (shopping cart)
+  is one screen band. Landing highlights the first row; Enter focuses
+  widgets inside that row; up/down on a row moves to the next product.
+- **Route focus handoff** — pushing a page moves focus onto that page
+  (`autofocus` / first tile) instead of keeping the previous route's
+  last focus. Pop still restores the previous page. This runs even when
+  `restoreFocus` is `false`.
+
+### Changed
+
+- **`DpadRegionKind.item` highlight** — after Enter moves into a row,
+  only the inner widget shows the focus effect. The row host highlight
+  turns off (it used to stay on because the host still `hasFocus`).
+- **TTS after paint** — `DpadTtsService.speak` runs on a post-frame
+  callback so a blocking TTS backend cannot freeze keypad focus UI.
+
 ## [3.0.0] - 2026-06-13
 
 A ground-up rewrite. 3.0 replaces the 2.x key interception and rule tables

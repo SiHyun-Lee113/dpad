@@ -3,14 +3,14 @@ import 'package:flutter/widgets.dart';
 
 import 'effects.dart';
 
-/// Shared defaults for every [DpadFocusable] below a [DpadTheme] (or the
-/// [Dpad] root, which installs one).
+/// [DpadTheme] 아래(또는 하나를 설치하는 [Dpad] 루트 아래)의
+/// 모든 [DpadFocusable]이 공유하는 기본값.
 ///
-/// Individual [DpadFocusable]s override these values with their own
-/// parameters; anything left `null` falls back to the theme.
+/// 개별 [DpadFocusable]이 자기 파라미터로 덮어씁니다.
+/// `null`로 남긴 값은 테마로 떨어집니다.
 @immutable
 class DpadThemeData {
-  /// Creates d-pad defaults.
+  /// D-pad 기본값을 만듭니다.
   const DpadThemeData({
     this.effects = defaultEffects,
     this.scrollPadding = 48.0,
@@ -19,31 +19,30 @@ class DpadThemeData {
     this.longSelectDuration = const Duration(milliseconds: 500),
   });
 
-  /// The default focus presentation: a gentle scale plus a border.
+  /// 기본 포커스 표현: 약한 확대 + 테두리.
   static const List<DpadEffect> defaultEffects = <DpadEffect>[
     DpadScaleEffect(),
     DpadBorderEffect(),
   ];
 
-  /// Effects applied to focusables that do not declare their own
-  /// [DpadFocusable.effects] or [DpadFocusable.builder].
+  /// 자체 [DpadFocusable.effects]나 [DpadFocusable.builder]가 없는
+  /// 칸에 적용되는 이펙트.
   final List<DpadEffect> effects;
 
-  /// Extra space kept between a focused item and the viewport edge when
-  /// auto-scrolling, so glows and scaled borders stay fully visible.
+  /// 자동 스크롤 시 포커스된 칸과 뷰포트 가장자리 사이에 남기는 여백.
+  /// 글로우·확대된 테두리가 잘리지 않게 합니다.
   final double scrollPadding;
 
-  /// Duration of the auto-scroll animation.
+  /// 자동 스크롤 애니메이션 시간.
   final Duration scrollDuration;
 
-  /// Curve of the auto-scroll animation.
+  /// 자동 스크롤 애니메이션 커브.
   final Curve scrollCurve;
 
-  /// How long the select key must be held before
-  /// [DpadFocusable.onLongSelect] fires.
+  /// 선택 키를 얼마나 눌러야 [DpadFocusable.onLongSelect]가 발생하는지.
   final Duration longSelectDuration;
 
-  /// Creates a copy of this theme with the given fields replaced.
+  /// 지정한 필드만 바꾼 복사본을 만듭니다.
   DpadThemeData copyWith({
     List<DpadEffect>? effects,
     double? scrollPadding,
@@ -83,9 +82,9 @@ class DpadThemeData {
       );
 }
 
-/// Provides a [DpadThemeData] to descendant [DpadFocusable]s.
+/// 하위 [DpadFocusable]에 [DpadThemeData]를 제공합니다.
 ///
-/// Nest one anywhere to restyle a subtree:
+/// 아무 곳에나 중첩해 서브트리만 스타일을 바꿀 수 있습니다:
 ///
 /// ```dart
 /// DpadTheme(
@@ -96,19 +95,18 @@ class DpadThemeData {
 /// )
 /// ```
 class DpadTheme extends InheritedWidget {
-  /// Provides [data] to descendants.
+  /// [data]를 자손에게 제공합니다.
   const DpadTheme({super.key, required this.data, required super.child});
 
-  /// The defaults for this subtree.
+  /// 이 서브트리의 기본값.
   final DpadThemeData data;
 
-  /// The [DpadThemeData] of the closest enclosing [DpadTheme], or a default
-  /// [DpadThemeData] when there is none.
+  /// 가장 가까운 [DpadTheme]의 [DpadThemeData]. 없으면 기본 [DpadThemeData].
   static DpadThemeData of(BuildContext context) {
     return maybeOf(context) ?? const DpadThemeData();
   }
 
-  /// The [DpadThemeData] of the closest enclosing [DpadTheme], if any.
+  /// 가장 가까운 [DpadTheme]의 [DpadThemeData]. 없으면 `null`.
   static DpadThemeData? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<DpadTheme>()?.data;
   }

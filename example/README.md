@@ -23,6 +23,7 @@ A complete, remote-drivable TV streaming UI built with the
 | Per-item effect overrides | `lib/sections/for_you_section.dart` |
 | Grid navigation with auto-scroll | `lib/sections/library_section.dart` |
 | Text input coexistence (caret vs. navigation, never trapped) | `lib/sections/search_section.dart` |
+| Dialogs trap d-pad focus (PIN keypad, choice list, nested, text field) | `lib/sections/dialogs_section.dart` |
 | `DpadTheme` subtree override (one style for all rows) | `lib/sections/settings_section.dart` |
 | Disabled items skipped by navigation (`enabled: false`) | `lib/sections/settings_section.dart` |
 | `onDirection` volume slider (consumes left/right) | `lib/sections/settings_section.dart` |
@@ -42,7 +43,7 @@ A complete, remote-drivable TV streaming UI built with the
 | Hold select on a poster | Context menu |
 | Esc / Back | Back (exit dialog on the home screen) |
 | Menu / F1 | Help dialog |
-| H / L / S | Jump to For you / Library / Search |
+| H / L / S / D | Jump to For you / Library / Search / Dialogs |
 | I | Toggle the focus inspector |
 
 ## Running

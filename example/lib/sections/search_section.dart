@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../widgets/poster_card.dart';
 
-/// Demonstrates that d-pad navigation and text input coexist: while the
-/// field is being edited, arrows move the caret and app shortcuts stand
-/// down; the moment focus moves on, the remote drives the grid again.
+/// D-pad 탐색과 텍스트 입력이 함께 동작함을 보여 줍니다. 필드를 편집하는 동안
+/// 화살표는 캐럿을 움직이고 앱 단축키는 멈춥니다. 포커스가 나가면 다시
+/// 리모컨이 그리드를 움직입니다.
 class SearchSection extends StatefulWidget {
   const SearchSection({super.key});
 

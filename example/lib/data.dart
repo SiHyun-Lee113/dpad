@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A fake catalog entry. Posters are rendered from gradients so the demo
-/// runs fully offline.
+/// 가짜 카탈로그 항목. 포스터는 그라데이션으로 그려 데모가 오프라인에서도 돕니다.
 class Movie {
   const Movie({
     required this.title,
@@ -22,7 +21,7 @@ class Movie {
   final String rating;
   final String duration;
 
-  /// Watch progress 0..1 for the "Continue Watching" row.
+  /// "Continue Watching" 줄의 시청 진행도 0..1.
   final double? progress;
 }
 

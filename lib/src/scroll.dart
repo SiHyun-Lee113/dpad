@@ -2,21 +2,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-/// TV-aware "ensure visible" scrolling.
+/// TV용 "화면에 보이게" 스크롤.
 ///
-/// Unlike [Scrollable.ensureVisible], this helper:
+/// [Scrollable.ensureVisible]과 다른 점:
 ///
-/// * keeps a configurable [padding] between the item and the viewport edge,
-///   so focus glows, borders and scale effects are never clipped;
-/// * walks **all** scrollable ancestors, handling rows nested inside
-///   vertically scrolling pages in one call;
-/// * respects reversed scrollables;
-/// * centers items that are larger than the viewport.
+/// * 칸과 뷰포트 가장자리 사이에 [padding]을 남겨, 포커스 글로우·테두리·확대가
+///   잘리지 않습니다;
+/// * **모든** 스크롤 조상을 한 번에 걷습니다. 세로 페이지 안의 가로 줄도
+///   한 호출로 처리합니다;
+/// * 역방향 스크롤을 존중합니다;
+/// * 뷰포트보다 큰 칸은 가운데로 맞춥니다.
 abstract final class DpadScroll {
-  /// Scrolls every scrollable ancestor of [node] so the node's render box is
-  /// fully visible with [padding] around it.
+  /// [node]의 모든 스크롤 조상을 움직여, 렌더 박스가 [padding]을 두고
+  /// 완전히 보이게 합니다.
   ///
-  /// Does nothing if [node] is not attached to a laid-out render object.
+  /// [node]가 레이아웃된 렌더 오브젝트에 붙어 있지 않으면 아무 것도 하지 않습니다.
   static void ensureVisible(
     FocusNode node, {
     double padding = 48.0,
@@ -85,8 +85,7 @@ abstract final class DpadScroll {
         horizontal ? viewportObject.size.width : viewportObject.size.height;
     final double targetExtent = targetEnd - targetStart;
 
-    // Effective padding never exceeds the leftover viewport space, so large
-    // items are still handled sensibly.
+    // 패딩이 남은 뷰포트 공간을 넘지 않게 해, 큰 칸도 무리 없이 처리합니다.
     final double pad = math.max(
       0.0,
       math.min(padding, (viewportExtent - targetExtent) / 2),
@@ -94,19 +93,18 @@ abstract final class DpadScroll {
 
     double geometricDelta;
     if (targetExtent + pad * 2 > viewportExtent) {
-      // Larger than the viewport: center it.
+      // 뷰포트보다 크면 가운데로.
       geometricDelta = (targetStart + targetEnd) / 2 - viewportExtent / 2;
     } else if (targetStart < pad) {
       geometricDelta = targetStart - pad;
     } else if (targetEnd > viewportExtent - pad) {
       geometricDelta = targetEnd - (viewportExtent - pad);
     } else {
-      return; // Already fully visible with padding.
+      return; // 이미 패딩을 두고 완전히 보임.
     }
 
-    // A positive geometric delta means content must move towards the start,
-    // which increases pixels on forward axes and decreases it on reversed
-    // ones.
+    // 기하 델타가 양수면 콘텐츠가 시작 쪽으로 가야 합니다.
+    // 정방향 축에서는 픽셀이 늘고, 역방향 축에서는 줄어듭니다.
     final bool reversed = axisDirection == AxisDirection.up ||
         axisDirection == AxisDirection.left;
     final double pixelsDelta = reversed ? -geometricDelta : geometricDelta;

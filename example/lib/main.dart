@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'app_state.dart';
 import 'pages/home_page.dart';
+import 'widgets/tts_caption_bar.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -27,38 +28,46 @@ class DpadTvApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0E1116),
         useMaterial3: true,
       ),
-      // One builder installs TV navigation for every route, dialog and
-      // sheet. (`Dpad.wrap()` does the same in one line — the explicit
-      // widget is used here so the focus inspector can be toggled live.)
+      // builder 하나가 모든 라우트·다이얼로그·시트에 TV 탐색을 설치합니다.
+      // (`Dpad.wrap()`도 한 줄로 같습니다. 여기선 포커스 인스펙터를
+      // 실시간으로 켜고 끄려고 위젯을 직접 씁니다.)
       builder: (context, child) {
         return ValueListenableBuilder<bool>(
           valueListenable: showFocusInspector,
           builder: (context, inspector, _) => Dpad(
-            // App-wide styling and timing defaults for every DpadFocusable.
+            // 모든 DpadFocusable의 앱 전역 스타일·타이밍 기본값.
             theme: const DpadThemeData(scrollPadding: 56),
-            // Back behaves like a TV remote: pop whatever is open, confirm
-            // before leaving the app from the home screen.
+            // 뒤로 키는 TV 리모컨처럼: 열린 것을 pop하고, 홈에서는
+            // 앱을 나가기 전에 확인합니다.
             onBack: _handleBack,
-            // The menu key opens the help dialog.
+            // 메뉴 키는 도움말 다이얼로그를 엽니다.
             onMenu: _showAbout,
-            // The classic focus "tick" on every move.
+            // 읽어 줄 문구는 DpadFocusable.ttsLabel에서 옵니다.
+            ttsService: appTts,
+            // 포커스가 움직일 때마다 나는 전형적인 "틱" 소리.
             onFocusChange: (node) {
               if (node != null && clickSounds.value) {
                 SystemSound.play(SystemSoundType.click);
               }
             },
-            // App-level shortcuts (autosuspended while typing in Search!).
+            // 앱 수준 단축키 (Search에서 타이핑 중에는 자동으로 멈춤).
             shortcuts: {
               LogicalKeyboardKey.keyH: () => activeSection.value = 0,
               LogicalKeyboardKey.keyL: () => activeSection.value = 1,
               LogicalKeyboardKey.keyS: () => activeSection.value = 2,
+              LogicalKeyboardKey.keyD: () => activeSection.value = 3,
               LogicalKeyboardKey.keyI: () =>
                   showFocusInspector.value = !showFocusInspector.value,
               LogicalKeyboardKey.f1: _showAbout,
             },
-            // The built-in focus inspector, toggled from Settings.
+            // 내장 포커스 인스펙터. Settings에서 켜고 끕니다.
             debugOverlay: inspector,
-            child: child ?? const SizedBox.shrink(),
+            child: Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                const TtsCaptionBar(),
+              ],
+            ),
           ),
         );
       },
@@ -112,7 +121,7 @@ class DpadTvApp extends StatelessWidget {
           '• Hold center — context menu on posters\n'
           '• Esc / back — back\n'
           '• Menu key or F1 — this dialog\n'
-          '• H / L / S — jump to a section\n'
+          '• H / L / S / D — jump to a section\n'
           '• I — toggle the focus inspector',
         ),
         actions: [
@@ -142,6 +151,7 @@ class _DialogAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadFocusable(
       autofocus: autofocus,
+      ttsLabel: label,
       onSelect: onSelect,
       effects: const [
         DpadTintEffect(

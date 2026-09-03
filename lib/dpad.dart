@@ -1,9 +1,9 @@
-/// D-pad navigation for Flutter TV apps — Android TV, Fire TV, Apple TV and
-/// anything driven by a remote or game controller.
+/// Flutter TV 앱용 D-pad 내비게이션 — Android TV, Fire TV, Apple TV,
+/// 리모컨·게임패드가 있는 모든 환경.
 ///
-/// ## Quick start
+/// ## 빠른 시작
 ///
-/// 1. Install the root with `MaterialApp.builder`:
+/// 1. `MaterialApp.builder`에 루트를 설치합니다:
 ///
 /// ```dart
 /// MaterialApp(
@@ -12,7 +12,7 @@
 /// )
 /// ```
 ///
-/// 2. Make widgets focusable:
+/// 2. 위젯을 포커스 가능하게 만듭니다:
 ///
 /// ```dart
 /// DpadFocusable(
@@ -22,10 +22,10 @@
 /// )
 /// ```
 ///
-/// 3. Structure screens into regions:
+/// 3. 화면을 영역으로 나눕니다:
 ///
 /// ```dart
-/// DpadRegion(            // a poster row that remembers its position
+/// DpadRegion(            // 위치를 기억하는 포스터 줄
 ///   child: SizedBox(
 ///     height: 200,
 ///     child: ListView(scrollDirection: Axis.horizontal, children: cards),
@@ -33,26 +33,30 @@
 /// )
 /// ```
 ///
-/// ## Building blocks
+/// ## 구성 요소
 ///
-/// * [Dpad] — the root: key handling, focus resilience, programmatic
-///   control via [Dpad.of].
-/// * [DpadFocusable] — a focus target with select / long-select, pressed
-///   state and focus effects.
-/// * [DpadRegion] — groups items with TV semantics: focus memory
-///   ([DpadEnterBehavior]) and per-axis edge control ([DpadEdgeBehavior]).
-/// * [DpadEffect] — composable focus visuals ([DpadScaleEffect],
-///   [DpadGlowEffect], [DpadBorderEffect], ...), themable through
-///   [DpadTheme].
-/// * [DpadTraversalPolicy] — the TV-correct directional engine, installed
-///   automatically by [Dpad] and [DpadRegion].
+/// * [Dpad] — 루트: 키 처리, 포커스 복구, [Dpad.of]로 프로그래밍 제어,
+///   접근성 안내용 [DpadTtsService] (선택). 화면을 바꾸면 새 페이지에
+///   포커스가 착지하고, 이전 페이지 마지막 칸에 남지 않습니다.
+/// * [DpadFocusable] — 포커스 칸: 선택 / 롱셀렉트, pressed 상태,
+///   포커스 이펙트, [DpadFocusable.ttsLabel] (선택).
+/// * [DpadRegion] — TV 의미의 구역: 포커스 메모리([DpadEnterBehavior])와
+///   축별 가장자리 규칙([DpadEdgeBehavior]), 그리드용
+///   [DpadRegionFlow.readingOrder], 화면 진입용 [DpadRegion.autofocus],
+///   장바구니 같은 세로 목록용 [DpadRegionKind.list] / [item].
+/// * [DpadEffect] — 조합 가능한 포커스 비주얼 ([DpadScaleEffect],
+///   [DpadGlowEffect], [DpadBorderEffect] 등). [DpadTheme]으로 테마 지정.
+/// * [DpadTraversalPolicy] — TV에 맞는 방향 탐색 엔진.
+///   [Dpad]과 [DpadRegion]이 자동으로 설치합니다.
 library;
 
 export 'src/effects.dart';
 export 'src/focusable.dart';
 export 'src/key_set.dart';
+export 'src/nav_policy.dart';
 export 'src/region.dart';
 export 'src/root.dart';
 export 'src/scroll.dart';
 export 'src/theme.dart';
 export 'src/traversal.dart';
+export 'src/tts.dart';

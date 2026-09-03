@@ -1,9 +1,8 @@
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 
-/// A remote-friendly button built on [DpadFocusable.builder], showing how to
-/// take full control of the focus presentation (including the pressed
-/// state of the select key).
+/// [DpadFocusable.builder]로 만든 리모컨용 버튼.
+/// 포커스 표현을 전부 직접 그리는 방법 (선택 키 pressed 상태 포함).
 class TvButton extends StatelessWidget {
   const TvButton({
     super.key,
@@ -26,6 +25,7 @@ class TvButton extends StatelessWidget {
     return DpadFocusable(
       autofocus: autofocus,
       entry: entry,
+      ttsLabel: label,
       onSelect: onSelect,
       builder: (context, state, child) {
         final Color background = state.focused

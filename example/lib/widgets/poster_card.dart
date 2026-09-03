@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../pages/detail_page.dart';
 
-/// A poster tile driven entirely by [DpadFocusable].
+/// [DpadFocusable]만으로 동작하는 포스터 타일.
 ///
-/// * select  → opens the detail page
-/// * long-select → opens a context sheet (a very TV pattern)
-/// * effects come from the app-wide [DpadTheme] unless [effects] overrides
+/// * select  → 상세 페이지를 염
+/// * long-select → 컨텍스트 시트 (전형적인 TV 패턴)
+/// * 이펙트는 앱 전역 [DpadTheme]. [effects]가 있으면 덮어씀
 class PosterCard extends StatelessWidget {
   const PosterCard({
     super.key,
@@ -18,6 +18,7 @@ class PosterCard extends StatelessWidget {
     this.margin = EdgeInsets.zero,
     this.effects,
     this.autofocus = false,
+    this.entry = false,
     this.showProgress = false,
   });
 
@@ -27,6 +28,7 @@ class PosterCard extends StatelessWidget {
   final EdgeInsetsGeometry margin;
   final List<DpadEffect>? effects;
   final bool autofocus;
+  final bool entry;
   final bool showProgress;
 
   @override
@@ -35,8 +37,10 @@ class PosterCard extends StatelessWidget {
       padding: margin,
       child: DpadFocusable(
         autofocus: autofocus,
+        entry: entry,
         effects: effects,
         debugLabel: 'poster:${movie.title}',
+        ttsLabel: '${movie.title}, ${movie.year}',
         onSelect: () => DetailPage.open(context, movie),
         onLongSelect: () => _showOptions(context),
         child: SizedBox(

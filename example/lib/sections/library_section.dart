@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../data.dart';
 import '../widgets/poster_card.dart';
 
-/// A grid the remote can roam freely: one region, focus memory on re-entry,
-/// auto-scroll keeping the focused tile clear of the viewport edges.
+/// 리모컨이 자유롭게 다니는 그리드: 영역 하나, 다시 들어올 때 포커스 메모리,
+/// 포커스된 타일이 뷰포트 가장자리에 붙지 않게 자동 스크롤.
 class LibrarySection extends StatelessWidget {
   const LibrarySection({super.key});
 
@@ -15,8 +15,7 @@ class LibrarySection extends StatelessWidget {
       debugLabel: 'library',
       memoryKey: 'library',
       child: GridView.builder(
-        // Padding sits inside the scrollable, so edge cards can scale and
-        // glow into it without being clipped.
+        // 패딩을 스크롤 안에 두면, 가장자리 카드가 스케일·글로우해도 잘리지 않습니다.
         padding: const EdgeInsets.all(36),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 260,

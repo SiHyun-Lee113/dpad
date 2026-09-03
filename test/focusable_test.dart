@@ -224,6 +224,48 @@ void main() {
       expect(scale.scale, const DpadScaleEffect().scale);
     });
 
+    testWidgets('border effect overlay uses fill and inside stroke when focused',
+        (tester) async {
+      const fill = Color(0x263749FF);
+      const border = Color(0xFF3749FF);
+      final node = FocusNode();
+
+      await tester.pumpWidget(tvApp(
+        theme: const DpadThemeData(
+          effects: [
+            DpadBorderEffect(
+              color: border,
+              fillColor: fill,
+              width: 6,
+              borderRadius: BorderRadius.zero,
+              duration: Duration.zero,
+            ),
+          ],
+        ),
+        home: DpadFocusable(
+          focusNode: node,
+          autofocus: true,
+          child: const SizedBox(width: 60, height: 60),
+        ),
+      ));
+      await tester.pump();
+
+      final container = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: find.byType(DpadFocusable),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      final BoxDecoration decoration =
+          container.foregroundDecoration! as BoxDecoration;
+      expect(decoration.color, fill);
+      expect(decoration.borderRadius, BorderRadius.zero);
+      final BorderSide side = (decoration.border! as Border).top;
+      expect(side.color, border);
+      expect(side.width, 6);
+      expect(side.strokeAlign, BorderSide.strokeAlignInside);
+    });
+
     testWidgets('child focusables are excluded by default', (tester) async {
       final node = FocusNode();
 
@@ -238,7 +280,7 @@ void main() {
       await tester.pump();
       expect(node.hasPrimaryFocus, isTrue);
 
-      // The wrapped button must not be a second d-pad stop.
+      // 감싼 버튼이 D-pad 두 번째 칸이 되면 안 됨.
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pump();
       expect(node.hasPrimaryFocus, isTrue);

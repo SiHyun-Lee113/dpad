@@ -1,30 +1,34 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'marks.dart';
+import 'nav_policy.dart';
 import 'region.dart';
 import 'scroll.dart';
 
-/// A [FocusTraversalPolicy] that navigates the way TV platforms do.
+/// TV 플랫폼처럼 탐색하는 [FocusTraversalPolicy].
 ///
-/// Flutter's stock directional policy picks the geometrically closest node,
-/// which breaks down in real TV layouts (focus "jumping lanes" between a
-/// sidebar and content, skipping rows, escaping carousels). This policy
-/// implements the model used by Android's `FocusFinder` and Leanback:
+/// Flutter 기본 방향 정책은 기하적으로 가장 가까운 노드를 고릅니다.
+/// 실제 TV 레이아웃에서는 사이드바와 콘텐츠 사이 "레인 점프", 줄 건너뛰기,
+/// 캐러셀 이탈이 생깁니다. 이 정책은 Android `FocusFinder`와 Leanback 모델을 따릅니다:
 ///
-/// 1. **Region first** — candidates inside the current [DpadRegion] always
-///    win over outside candidates, regardless of raw distance.
-/// 2. **Beam preference** — candidates that overlap the focused item on the
-///    cross axis ("in the beam") beat diagonal candidates.
-/// 3. **Edge behaviors** — at a region boundary, focus leaves, stops or
-///    wraps according to the region's [DpadEdgeBehavior].
-/// 4. **Enter behaviors** — when focus crosses into a region, the region
-///    decides the landing item (restore memory / entry item / nearest).
-/// 5. **Lazy-list awareness** — when no candidate exists but a scrollable
-///    can still scroll in that direction, the policy scrolls and retries,
-///    so `ListView.builder` rows beyond the cache are reachable.
+/// 1. **영역 우선** — 지금 [DpadRegion] 안 후보는 거리와 관계없이 바깥보다 이깁니다.
+/// 2. **빔 우선** — 영역 *안*에서는 교차축에서 포커스 칸과 겹치는 후보("빔 안")가
+///    대각선 후보를 이깁니다.
+/// 3. **가장자리 동작** — 영역 경계에서 leave / stop / wrap ([DpadEdgeBehavior]).
+/// 4. **읽기 순서** — [DpadRegionFlow.readingOrder] 영역은 기하 대신
+///    좌우로만 칸을 걷고, 마지막 칸의 다음 방향은 첫 칸으로 순환합니다.
+/// 5. **영역 핸드오프** — 영역을 떠날 때는 직선 빔이 닿는 칸이 아니라,
+///    그 방향에서 가장 가까운 [DpadRegion]을 고른 뒤 **항상 그 영역의 첫 칸**에
+///    착지합니다.
+/// 6. **진입 동작** — 영역으로 넘어갈 때 착지 칸을 영역이 고릅니다
+///    (메모리 복원 / entry / 최근접).
+/// 7. **지연 리스트** — 후보가 없어도 그 방향으로 스크롤할 수 있으면 스크롤 후 재시도해,
+///    캐시 밖 `ListView.builder` 줄에도 도달합니다.
 ///
-/// [Dpad] and [DpadRegion] install this policy automatically; you rarely
-/// construct it yourself. To use it manually:
+/// [Dpad]와 [DpadRegion]이 이 정책을 자동으로 설치하므로 직접 만들 일은 거의 없습니다.
+/// 수동으로 쓰려면:
 ///
 /// ```dart
 /// FocusTraversalGroup(
@@ -33,16 +37,16 @@ import 'scroll.dart';
 /// )
 /// ```
 ///
-/// Tab / readers order falls back to [ReadingOrderTraversalPolicy].
+/// Tab / 스크린 리더 순서는 [ReadingOrderTraversalPolicy]로 떨어집니다.
 class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
-  /// Creates a TV traversal policy.
+  /// TV 탐색 정책을 만듭니다.
   DpadTraversalPolicy();
 
   static const double _kAxisEpsilon = 0.01;
 
   @override
   bool inDirection(FocusNode currentNode, TraversalDirection direction) {
-    // No real focus yet: land on a sensible initial item.
+    // 아직 실제 포커스가 없으면 합리적인 첫 칸에 착지.
     if (currentNode is FocusScopeNode) {
       final FocusNode? inner = currentNode.focusedChild;
       if (inner != null) {
@@ -60,6 +64,16 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     final List<FocusNode> candidates = scope.traversalDescendants
         .where((FocusNode node) => !identical(node, currentNode))
         .toList();
+
+    if (_isKiosk(currentNode)) {
+      return _inKioskDirection(
+        currentNode,
+        currentRect,
+        <FocusNode>[currentNode, ...candidates],
+        direction,
+      );
+    }
+
     final DpadRegionState? region = DpadRegion.ofNode(currentNode);
 
     if (region != null) {
@@ -67,35 +81,72 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
           .where((FocusNode node) => identical(DpadRegion.ofNode(node), region))
           .toList();
 
-      final FocusNode? within =
-          _bestCandidate(currentRect, inRegion, direction);
-      if (within != null) {
-        return _focusNode(within, direction);
-      }
-
-      // The region might have more content that simply is not built yet.
-      if (_scrollForMore(currentNode, direction, boundary: region.context)) {
-        return true;
-      }
-
-      switch (region.edgeBehaviorFor(direction)) {
-        case DpadEdgeBehavior.stop:
-          region.notifyEdge(direction);
-          return true;
-        case DpadEdgeBehavior.wrap:
-          final FocusNode? wrapped =
-              _wrapCandidate(currentRect, inRegion, direction);
-          if (wrapped != null) {
-            return _focusNode(wrapped, direction);
+      if (region.flow == DpadRegionFlow.readingOrder) {
+        if (_isHorizontal(direction)) {
+          final FocusNode? next = _readingOrderNeighbor(
+            currentNode,
+            inRegion,
+            direction,
+          );
+          if (next != null) {
+            return _focusNode(next, direction);
           }
-          region.notifyEdge(direction);
+        }
+
+        // 상/하는 영역 안 칸을 건너뛰고 가장자리·바깥으로.
+        if (_scrollForMore(currentNode, direction, boundary: region.context)) {
           return true;
-        case DpadEdgeBehavior.leave:
-          break;
+        }
+
+        switch (region.edgeBehaviorFor(direction)) {
+          case DpadEdgeBehavior.stop:
+            region.notifyEdge(direction);
+            return true;
+          case DpadEdgeBehavior.wrap:
+            final FocusNode? wrapped = _readingOrderWrap(
+              currentNode,
+              inRegion,
+              direction,
+            );
+            if (wrapped != null) {
+              return _focusNode(wrapped, direction);
+            }
+            region.notifyEdge(direction);
+            return true;
+          case DpadEdgeBehavior.leave:
+            break;
+        }
+      } else {
+        final FocusNode? within =
+            _bestCandidate(currentRect, inRegion, direction);
+        if (within != null) {
+          return _focusNode(within, direction);
+        }
+
+        // 영역에 아직 빌드되지 않은 콘텐츠가 더 있을 수 있음.
+        if (_scrollForMore(currentNode, direction, boundary: region.context)) {
+          return true;
+        }
+
+        switch (region.edgeBehaviorFor(direction)) {
+          case DpadEdgeBehavior.stop:
+            region.notifyEdge(direction);
+            return true;
+          case DpadEdgeBehavior.wrap:
+            final FocusNode? wrapped =
+                _wrapCandidate(currentRect, inRegion, direction);
+            if (wrapped != null) {
+              return _focusNode(wrapped, direction);
+            }
+            region.notifyEdge(direction);
+            return true;
+          case DpadEdgeBehavior.leave:
+            break;
+        }
       }
     }
 
-    // Cross-region / global search.
+    // 영역 밖 / 전역 검색: 칸이 아니라 그 방향의 다음 영역을 고릅니다.
     final List<FocusNode> outside = region == null
         ? candidates
         : candidates
@@ -103,34 +154,24 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
                 (FocusNode node) => !identical(DpadRegion.ofNode(node), region))
             .toList();
 
-    final FocusNode? nearest = _bestCandidate(currentRect, outside, direction);
-    if (nearest == null) {
-      // Nothing anywhere — maybe an enclosing page scrollable can reveal
-      // more content (lazily built rows, grids, etc.).
+    final FocusNode? target =
+        _bestOutsideTarget(currentRect, outside, direction);
+    if (target == null) {
+      // 어디에도 없음 — 바깥 페이지 스크롤이 지연 빌드된 줄·그리드를 드러낼 수 있음.
       return _scrollForMore(currentNode, direction);
-    }
-
-    FocusNode target = nearest;
-    final DpadRegionState? targetRegion = DpadRegion.ofNode(nearest);
-    if (targetRegion != null && !identical(targetRegion, region)) {
-      final List<FocusNode> targetCandidates = outside
-          .where((FocusNode node) =>
-              identical(DpadRegion.ofNode(node), targetRegion))
-          .toList();
-      target = targetRegion.resolveEnter(nearest, targetCandidates);
     }
     return _focusNode(target, direction);
   }
 
   // ---------------------------------------------------------------------
-  // Focus + initial placement
+  // 포커스 + 초기 착지
   // ---------------------------------------------------------------------
 
   bool _focusNode(FocusNode node, TraversalDirection direction) {
     DpadRegion.ofNode(node)?.noteFocus(node);
     node.requestFocus();
-    // DpadFocusable nodes run their own padded auto-scroll on focus; plain
-    // Focus nodes still get a basic reveal so they never stay clipped.
+    // DpadFocusable 노드는 포커스 시 자체 패딩 스크롤을 합니다.
+    // 일반 Focus 노드는 잘리지 않게 기본 스크롤만 합니다.
     if (DpadMarks.managed[node] != true) {
       DpadScroll.ensureVisible(node);
     }
@@ -147,13 +188,12 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
   }
 
   // ---------------------------------------------------------------------
-  // Geometry — modeled on Android FocusFinder
+  // 기하 — Android FocusFinder 모델
   // ---------------------------------------------------------------------
 
-  /// Whether [candidate] counts as "in [direction]" from [source].
+  /// [candidate]가 [source]에서 [direction] 방향에 있는지.
   ///
-  /// Edge-based, so candidates that partially overlap the source (large
-  /// tiles, banners) are still considered.
+  /// 가장자리 기준이라, 큰 타일·배너처럼 소스를 일부 겹쳐도 후보가 됩니다.
   static bool _isCandidate(
     Rect source,
     Rect candidate,
@@ -179,8 +219,8 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     }
   }
 
-  /// Distance from the source's leading edge to the candidate's trailing
-  /// edge along the navigation axis, clamped at zero for overlaps.
+  /// 탐색 축에서 소스 앞쪽 가장자리에서 후보 뒤쪽 가장자리까지 거리.
+  /// 겹치면 0으로 클램프합니다.
   static double _majorDistance(
     Rect source,
     Rect candidate,
@@ -200,7 +240,7 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     return distance < 0 ? 0 : distance;
   }
 
-  /// Distance between centers on the cross axis.
+  /// 교차축에서 중심 사이 거리.
   static double _minorDistance(
     Rect source,
     Rect candidate,
@@ -216,7 +256,7 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     }
   }
 
-  /// Whether [candidate] overlaps [source] on the cross axis.
+  /// [candidate]가 교차축에서 [source]와 겹치는지.
   static bool _inBeam(
     Rect source,
     Rect candidate,
@@ -232,8 +272,7 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     }
   }
 
-  /// Android's weighted distance: progress along the major axis dominates,
-  /// but cross-axis drift still discriminates.
+  /// Android의 가중 거리: 주축 진행이 크고, 교차축 이탈로 동점을 가릅니다.
   static double _weightedDistance(double major, double minor) {
     return 13 * major * major + minor * minor;
   }
@@ -260,7 +299,7 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
         _majorDistance(source, rect, direction),
         _minorDistance(source, rect, direction),
       );
-      // In-beam candidates categorically beat out-of-beam candidates.
+      // 빔 안 후보는 빔 밖 후보를 무조건 이깁니다.
       if (best == null ||
           (inBeam && !bestInBeam) ||
           (inBeam == bestInBeam && score < bestScore)) {
@@ -272,8 +311,115 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     return best;
   }
 
-  /// The wrap-around target: the in-region item furthest *behind* the
-  /// source along the navigation axis, preferring the source's beam.
+  /// 영역 밖 타깃: 직선 빔이 닿는 칸이 아니라, 그 방향에서 가장 가까운 영역.
+  ///
+  /// 바깥에 [DpadRegion]이 하나도 없으면 기존 빔 탐색으로 떨어집니다.
+  FocusNode? _bestOutsideTarget(
+    Rect source,
+    List<FocusNode> outside,
+    TraversalDirection direction,
+  ) {
+    final List<_RegionGroup> groups = _groupByRegion(outside);
+    if (groups.isEmpty) {
+      return null;
+    }
+    if (groups.every((_RegionGroup group) => group.region == null)) {
+      return _bestCandidate(source, outside, direction);
+    }
+
+    _RegionGroup? best;
+    double bestMajor = double.infinity;
+    double bestMinor = double.infinity;
+
+    for (final _RegionGroup group in groups) {
+      if (!_isCandidate(source, group.bounds, direction)) {
+        continue;
+      }
+      final double major = _majorDistance(source, group.bounds, direction);
+      final double minor = _minorDistance(source, group.bounds, direction);
+      final bool better;
+      if (best == null) {
+        better = true;
+      } else if ((major - bestMajor).abs() > _kAxisEpsilon) {
+        better = major < bestMajor;
+      } else {
+        better = minor < bestMinor;
+      }
+      if (better) {
+        best = group;
+        bestMajor = major;
+        bestMinor = minor;
+      }
+    }
+    if (best == null) {
+      return null;
+    }
+
+    final FocusNode geometric = _bestCandidate(source, best.nodes, direction) ??
+        DpadMarks.initialCandidate(best.nodes) ??
+        best.nodes.first;
+    final DpadRegionState? region = best.region;
+    if (region == null) {
+      return geometric;
+    }
+    return region.firstFocusable ?? geometric;
+  }
+
+  List<_RegionGroup> _groupByRegion(List<FocusNode> nodes) {
+    final Map<DpadRegionState, List<FocusNode>> regions =
+        <DpadRegionState, List<FocusNode>>{};
+    final List<_RegionGroup> groups = <_RegionGroup>[];
+
+    for (final FocusNode node in nodes) {
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect == null) {
+        continue;
+      }
+      final DpadRegionState? region = DpadRegion.ofNode(node);
+      if (region == null) {
+        groups.add(
+          _RegionGroup(
+            region: null,
+            nodes: <FocusNode>[node],
+            bounds: rect,
+          ),
+        );
+        continue;
+      }
+      regions.putIfAbsent(region, () => <FocusNode>[]).add(node);
+    }
+
+    for (final MapEntry<DpadRegionState, List<FocusNode>> entry
+        in regions.entries) {
+      final Rect? bounds = _unionRect(entry.value);
+      if (bounds == null) {
+        continue;
+      }
+      groups.add(
+        _RegionGroup(
+          region: entry.key,
+          nodes: entry.value,
+          bounds: bounds,
+        ),
+      );
+    }
+    return groups;
+  }
+
+  static Rect? _unionRect(List<FocusNode> nodes) {
+    Rect? bounds;
+    for (final FocusNode node in nodes) {
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect == null) {
+        continue;
+      }
+      bounds = bounds == null ? rect : bounds.expandToInclude(rect);
+    }
+    return bounds;
+  }
+
+  /// wrap 타깃: 탐색 축에서 소스 *뒤쪽*으로 가장 먼 영역 안 칸.
+  /// 소스의 빔을 우선합니다.
   FocusNode? _wrapCandidate(
     Rect source,
     List<FocusNode> candidates,
@@ -330,15 +476,383 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     }
   }
 
+  static bool _isHorizontal(TraversalDirection direction) {
+    return direction == TraversalDirection.left ||
+        direction == TraversalDirection.right;
+  }
+
+  static bool _isKiosk(FocusNode node) {
+    final BuildContext? context = node.context;
+    if (context == null || !context.mounted) {
+      return false;
+    }
+    return DpadNavScope.of(context) == DpadNavPolicy.kiosk;
+  }
+
+  /// 키오스크: 좌우는 같은 영역, 상하는 영역 순환.
+  bool _inKioskDirection(
+    FocusNode current,
+    Rect currentRect,
+    List<FocusNode> all,
+    TraversalDirection direction,
+  ) {
+    if (_isHorizontal(direction)) {
+      return _kioskHorizontal(current, all, direction);
+    }
+    return _kioskVertical(current, all, direction);
+  }
+
+  bool _kioskHorizontal(
+    FocusNode current,
+    List<FocusNode> all,
+    TraversalDirection direction,
+  ) {
+    final List<FocusNode> peers = _kioskHorizontalPeers(current, all);
+    if (peers.length <= 1) {
+      return true;
+    }
+    final List<FocusNode> ordered = _readingOrder(peers);
+    final int index = ordered.indexOf(current);
+    if (index < 0) {
+      return true;
+    }
+    final int next = _wrapIndex(
+      index,
+      ordered.length,
+      forward: direction == TraversalDirection.right,
+    );
+    if (next == index) {
+      return true;
+    }
+    return _focusNode(ordered[next], direction);
+  }
+
+  List<FocusNode> _kioskHorizontalPeers(FocusNode current, List<FocusNode> all) {
+    final DpadRegionState? item = _itemRegion(current);
+    if (item != null) {
+      if (item.isHost(current)) {
+        return <FocusNode>[current];
+      }
+      return all
+          .where(
+            (FocusNode node) =>
+                !item.isHost(node) &&
+                _isKioskTraversable(node) &&
+                identical(DpadRegion.ofNode(node), item),
+          )
+          .toList();
+    }
+    final DpadRegionState? region = DpadRegion.ofNode(current);
+    if (region != null) {
+      return all
+          .where(
+            (FocusNode node) =>
+                _isKioskTraversable(node) &&
+                identical(DpadRegion.ofNode(node), region),
+          )
+          .toList();
+    }
+    final Rect? currentRect = DpadMarks.rectOf(current);
+    if (currentRect == null) {
+      return <FocusNode>[current];
+    }
+    return all.where((FocusNode node) {
+      if (!_isKioskTraversable(node)) {
+        return false;
+      }
+      if (DpadRegion.ofNode(node) != null) {
+        return false;
+      }
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect == null) {
+        return false;
+      }
+      return _sameRow(currentRect, rect);
+    }).toList();
+  }
+
+  bool _kioskVertical(
+    FocusNode current,
+    List<FocusNode> all,
+    TraversalDirection direction,
+  ) {
+    final DpadRegionState? item = _itemRegion(current);
+    if (item != null) {
+      return _kioskItemVertical(item, current, all, direction);
+    }
+    return _kioskVerticalBands(current, all, direction);
+  }
+
+  bool _kioskItemVertical(
+    DpadRegionState item,
+    FocusNode current,
+    List<FocusNode> all,
+    TraversalDirection direction,
+  ) {
+    final DpadRegionState? list = item.enclosingList;
+    final List<DpadRegionState> items =
+        list?.childItems ?? <DpadRegionState>[item];
+    final int index = items.indexWhere(
+      (DpadRegionState region) => identical(region, item),
+    );
+    if (index < 0) {
+      return true;
+    }
+    if (direction == TraversalDirection.down && index + 1 < items.length) {
+      return items[index + 1].requestLandingFocus();
+    }
+    if (direction == TraversalDirection.up && index > 0) {
+      return items[index - 1].requestLandingFocus();
+    }
+    final FocusNode from = item.hostNode ?? current;
+    return _kioskVerticalBands(from, all, direction);
+  }
+
+  bool _kioskVerticalBands(
+    FocusNode current,
+    List<FocusNode> all,
+    TraversalDirection direction,
+  ) {
+    final List<_KioskBand> bands = _kioskBands(all);
+    if (bands.length <= 1) {
+      return true;
+    }
+    final int index = bands.indexWhere(
+      (_KioskBand band) => band.contains(current),
+    );
+    if (index < 0) {
+      return true;
+    }
+    final int next = _wrapIndex(
+      index,
+      bands.length,
+      forward: direction == TraversalDirection.down,
+    );
+    if (next == index) {
+      return true;
+    }
+    return _focusKioskBand(bands[next], direction);
+  }
+
+  bool _focusKioskBand(_KioskBand band, TraversalDirection direction) {
+    if (band.region != null) {
+      if (band.region!.requestLandingFocus()) {
+        return true;
+      }
+    }
+    if (band.nodes.isEmpty) {
+      return true;
+    }
+    final FocusNode target = DpadMarks.preferredInitial(band.nodes) ??
+        band.nodes.first;
+    if (!DpadMarks.isUsable(target)) {
+      return true;
+    }
+    return _focusNode(target, direction);
+  }
+
+  bool _isKioskTraversable(FocusNode node) {
+    return DpadMarks.isUsable(node) && !node.skipTraversal;
+  }
+
+  DpadRegionState? _itemRegion(FocusNode node) {
+    final DpadRegionState? region = DpadRegion.ofNode(node);
+    if (region != null && region.kind == DpadRegionKind.item) {
+      return region;
+    }
+    return null;
+  }
+
+  List<_KioskBand> _kioskBands(List<FocusNode> all) {
+    final Set<DpadRegionState> lists = <DpadRegionState>{};
+    final Map<DpadRegionState, List<FocusNode>> byRegion =
+        <DpadRegionState, List<FocusNode>>{};
+    final List<FocusNode> ungrouped = <FocusNode>[];
+
+    for (final FocusNode node in all) {
+      final DpadRegionState? region = DpadRegion.ofNode(node);
+      final DpadRegionState? list = region?.enclosingList;
+      if (list != null) {
+        lists.add(list);
+        continue;
+      }
+      if (region != null && region.kind == DpadRegionKind.item) {
+        final FocusNode? host = region.hostNode;
+        if (host != null && DpadMarks.isUsable(host)) {
+          byRegion.putIfAbsent(region, () => <FocusNode>[host]);
+        }
+        continue;
+      }
+      if (!_isKioskTraversable(node) || DpadMarks.rectOf(node) == null) {
+        continue;
+      }
+      if (region == null) {
+        ungrouped.add(node);
+      } else {
+        byRegion.putIfAbsent(region, () => <FocusNode>[]).add(node);
+      }
+    }
+
+    final List<_KioskBand> bands = <_KioskBand>[];
+    for (final DpadRegionState list in lists) {
+      final List<FocusNode> nodes = _listBandNodes(list);
+      if (nodes.isNotEmpty) {
+        bands.add(_KioskBand(region: list, nodes: nodes));
+      }
+    }
+    for (final MapEntry<DpadRegionState, List<FocusNode>> entry
+        in byRegion.entries) {
+      bands.add(_KioskBand(region: entry.key, nodes: entry.value));
+    }
+    for (final List<FocusNode> row in _clusterRows(ungrouped)) {
+      bands.add(_KioskBand(region: null, nodes: row));
+    }
+
+    bands.sort((_KioskBand a, _KioskBand b) {
+      if (_sameRow(a.bounds, b.bounds)) {
+        return a.bounds.left.compareTo(b.bounds.left);
+      }
+      return a.bounds.top.compareTo(b.bounds.top);
+    });
+    return bands;
+  }
+
+  List<FocusNode> _listBandNodes(DpadRegionState list) {
+    final List<FocusNode> nodes = <FocusNode>[];
+    for (final DpadRegionState item in list.childItems) {
+      final FocusNode? host = item.hostNode;
+      if (host != null && DpadMarks.isUsable(host)) {
+        nodes.add(host);
+      }
+    }
+    return nodes;
+  }
+
+  static bool _sameRow(Rect a, Rect b) {
+    final double overlap =
+        math.min(a.bottom, b.bottom) - math.max(a.top, b.top);
+    final double minHeight = math.min(a.height, b.height);
+    return overlap > minHeight * 0.5;
+  }
+
+  static int _wrapIndex(int index, int length, {required bool forward}) {
+    if (length <= 0) {
+      return index;
+    }
+    if (forward) {
+      return (index + 1) % length;
+    }
+    return (index - 1 + length) % length;
+  }
+
+  List<List<FocusNode>> _clusterRows(List<FocusNode> nodes) {
+    final List<FocusNode> ordered = _readingOrder(nodes);
+    final List<List<FocusNode>> rows = <List<FocusNode>>[];
+    for (final FocusNode node in ordered) {
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect == null) {
+        continue;
+      }
+      if (rows.isNotEmpty) {
+        final Rect rowBounds = _boundsOf(rows.last);
+        if (_sameRow(rowBounds, rect)) {
+          rows.last.add(node);
+          continue;
+        }
+      }
+      rows.add(<FocusNode>[node]);
+    }
+    return rows;
+  }
+
+  static Rect _boundsOf(List<FocusNode> nodes) {
+    Rect? bounds;
+    for (final FocusNode node in nodes) {
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect == null) {
+        continue;
+      }
+      bounds = bounds == null ? rect : bounds.expandToInclude(rect);
+    }
+    return bounds ?? Rect.zero;
+  }
+
+  /// [DpadRegionFlow.readingOrder]용. 좌우는 읽기 순서로 한 칸 이동하고,
+  /// 끝에서는 반대편으로 순환합니다.
+  FocusNode? _readingOrderNeighbor(
+    FocusNode current,
+    List<FocusNode> others,
+    TraversalDirection direction,
+  ) {
+    final List<FocusNode> ordered =
+        _readingOrder(<FocusNode>[current, ...others]);
+    if (ordered.isEmpty) {
+      return null;
+    }
+    final int index = ordered.indexOf(current);
+    if (index < 0) {
+      return null;
+    }
+    if (direction == TraversalDirection.right) {
+      return ordered[(index + 1) % ordered.length];
+    }
+    if (direction == TraversalDirection.left) {
+      return ordered[(index - 1 + ordered.length) % ordered.length];
+    }
+    return null;
+  }
+
+  /// 읽기 순서 영역에서 상/하 wrap: 아래는 첫 칸, 위는 마지막 칸.
+  FocusNode? _readingOrderWrap(
+    FocusNode current,
+    List<FocusNode> others,
+    TraversalDirection direction,
+  ) {
+    final List<FocusNode> ordered =
+        _readingOrder(<FocusNode>[current, ...others]);
+    if (ordered.length < 2) {
+      return null;
+    }
+    switch (direction) {
+      case TraversalDirection.down:
+      case TraversalDirection.right:
+        return ordered.first;
+      case TraversalDirection.up:
+      case TraversalDirection.left:
+        return ordered.last;
+    }
+  }
+
+  /// 위→아래, 같은 줄은 왼→오른쪽.
+  List<FocusNode> _readingOrder(List<FocusNode> nodes) {
+    final List<({FocusNode node, Rect rect})> located =
+        <({FocusNode node, Rect rect})>[];
+    for (final FocusNode node in nodes) {
+      final Rect? rect = DpadMarks.rectOf(node);
+      if (rect != null) {
+        located.add((node: node, rect: rect));
+      }
+    }
+    located.sort((a, b) {
+      final double overlap = math.min(a.rect.bottom, b.rect.bottom) -
+          math.max(a.rect.top, b.rect.top);
+      final double minHeight = math.min(a.rect.height, b.rect.height);
+      if (overlap > minHeight * 0.5) {
+        return a.rect.left.compareTo(b.rect.left);
+      }
+      return a.rect.top.compareTo(b.rect.top);
+    });
+    return located.map((e) => e.node).toList();
+  }
+
   // ---------------------------------------------------------------------
-  // Lazy-content scrolling
+  // 지연 콘텐츠 스크롤
   // ---------------------------------------------------------------------
 
-  /// When no candidate exists, scrolls the nearest matching-axis scrollable
-  /// (between the node and [boundary]) one step further and re-runs the
-  /// search once the new content is laid out.
+  /// 후보가 없으면, 노드와 [boundary] 사이에서 같은 축의 가장 가까운
+  /// 스크롤을 한 칸 더 움직인 뒤, 새 콘텐츠가 레이아웃되면 검색을 다시 합니다.
   ///
-  /// Returns `true` when a scroll was started, which consumes the key press.
+  /// 스크롤을 시작했으면 `true`를 반환하고, 키는 소비됩니다.
   bool _scrollForMore(
     FocusNode node,
     TraversalDirection direction, {
@@ -384,7 +898,7 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
       curve: Curves.easeOutCubic,
     )
         .then((_) {
-      // Retry once the newly built content is in place.
+      // 새로 빌드된 콘텐츠가 자리 잡으면 한 번 더 시도.
       if (!node.hasPrimaryFocus || node.context == null) {
         return;
       }
@@ -417,8 +931,8 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
         : position.pixels > position.minScrollExtent + 1.0;
   }
 
-  /// Whether moving in [direction] corresponds to increasing scroll pixels
-  /// for the given [axisDirection].
+  /// [direction]으로 움직이는 것이 주어진 [axisDirection]에서
+  /// 스크롤 픽셀을 늘리는 방향인지.
   static bool _isForward(
     AxisDirection axisDirection,
     TraversalDirection direction,
@@ -434,4 +948,27 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
         return direction == TraversalDirection.left;
     }
   }
+}
+
+class _RegionGroup {
+  const _RegionGroup({
+    required this.region,
+    required this.nodes,
+    required this.bounds,
+  });
+
+  final DpadRegionState? region;
+  final List<FocusNode> nodes;
+  final Rect bounds;
+}
+
+class _KioskBand {
+  _KioskBand({required this.region, required this.nodes})
+      : bounds = DpadTraversalPolicy._boundsOf(nodes);
+
+  final DpadRegionState? region;
+  final List<FocusNode> nodes;
+  final Rect bounds;
+
+  bool contains(FocusNode node) => nodes.contains(node);
 }

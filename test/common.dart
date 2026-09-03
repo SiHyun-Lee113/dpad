@@ -2,8 +2,7 @@ import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Builds a minimal TV app with the d-pad root installed the recommended
-/// way (through `MaterialApp.builder`).
+/// 권장 방식(`MaterialApp.builder`)으로 D-pad 루트를 설치한 최소 TV 앱을 만듭니다.
 Widget tvApp({
   required Widget home,
   DpadThemeData? theme,
@@ -13,7 +12,10 @@ Widget tvApp({
   bool Function()? onBack,
   VoidCallback? onMenu,
   ValueChanged<FocusNode?>? onFocusChange,
+  DpadTtsService? ttsService,
   bool debugOverlay = false,
+  DpadNavPolicy navPolicy = DpadNavPolicy.tv,
+  bool restoreFocus = true,
 }) {
   return MaterialApp(
     builder: Dpad.wrap(
@@ -23,13 +25,16 @@ Widget tvApp({
       onBack: onBack,
       onMenu: onMenu,
       onFocusChange: onFocusChange,
+      ttsService: ttsService,
       debugOverlay: debugOverlay,
+      navPolicy: navPolicy,
+      restoreFocus: restoreFocus,
     ),
     home: Scaffold(body: home),
   );
 }
 
-/// A bare focusable square with no visual effects, for traversal tests.
+/// 탐색 테스트용. 비주얼 이펙트 없는 포커스 가능한 네모.
 Widget item(
   String id,
   FocusNode node, {
@@ -40,18 +45,21 @@ Widget item(
   bool autofocus = false,
   bool enabled = true,
   bool entry = false,
+  String? ttsLabel,
   double size = 60,
+  List<DpadEffect> effects = const <DpadEffect>[],
 }) {
   return DpadFocusable(
     focusNode: node,
     autofocus: autofocus,
     enabled: enabled,
     entry: entry,
+    ttsLabel: ttsLabel,
     onSelect: onSelect,
     onLongSelect: onLongSelect,
     onFocusChange: onFocusChange,
     onDirection: onDirection,
-    effects: const <DpadEffect>[],
+    effects: effects,
     child: SizedBox(
       width: size,
       height: size,

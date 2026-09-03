@@ -20,6 +20,8 @@ void main() {
         key: ValueKey<int>(generation),
         memoryKey: 'content',
         debugLabel: 'content',
+        enter: DpadEnterBehavior.restore,
+        horizontalEdge: DpadEdgeBehavior.leave,
         child: Column(
           children: [
             for (final id in const ['c1', 'c2', 'c3'])
@@ -45,7 +47,10 @@ void main() {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DpadRegion(child: item('m1', m1, autofocus: true)),
+              DpadRegion(
+                horizontalEdge: DpadEdgeBehavior.leave,
+                child: item('m1', m1, autofocus: true),
+              ),
               const SizedBox(width: 40),
               content(),
             ],
@@ -55,7 +60,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Focus the middle content item, then go back to the menu.
+    // 가운데 콘텐츠 칸에 포커스를 준 뒤 메뉴로 돌아감.
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -64,16 +69,15 @@ void main() {
     m1.requestFocus();
     await tester.pumpAndSettle();
 
-    // Rebuild the content region from scratch (new Key → new State and
-    // brand-new focus nodes).
+    // 콘텐츠 영역을 처음부터 다시 만듦 (새 Key → 새 State, 새 포커스 노드).
     setState(() => generation++);
     await tester.pumpAndSettle();
 
-    // Re-entering must land on the new c2, via the persisted memory.
+    // 방향키로 다시 들어오면 항상 영역의 첫 칸(c1)에 착지.
     focusedLabel = null;
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(focusedLabel, 'c2');
+    expect(focusedLabel, 'c1');
   });
 
   testWidgets('a pushed route without autofocus receives initial focus',
@@ -98,6 +102,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(p1.hasPrimaryFocus, isTrue,
         reason: 'a new page must be immediately drivable by the remote');
+  });
+
+  testWidgets(
+      'a pushed route takes focus even when restoreFocus is off and '
+      'the new page has no autofocus', (tester) async {
+    final a = FocusNode(debugLabel: 'prev');
+    final p1 = FocusNode(debugLabel: 'p1');
+    final p2 = FocusNode(debugLabel: 'p2');
+
+    await tester.pumpWidget(tvApp(
+      restoreFocus: false,
+      home: item('a', a, autofocus: true),
+    ));
+    await tester.pumpAndSettle();
+    expect(a.hasPrimaryFocus, isTrue);
+
+    Navigator.of(tester.element(find.text('a'))).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          body: Row(children: [item('p1', p1), item('p2', p2)]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(p1.hasPrimaryFocus, isTrue,
+        reason: 'next page must receive focus, not the previous page');
+    expect(a.hasPrimaryFocus, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(p2.hasPrimaryFocus, isTrue,
+        reason: 'arrows must move on the new page, not jump back');
+    expect(a.hasPrimaryFocus, isFalse);
   });
 
   testWidgets('Dpad.onFocusChange reports every focus move', (tester) async {
@@ -153,8 +190,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(a.hasPrimaryFocus, isTrue);
 
-    // Flip the overlay on: the subtree must not be rebuilt from scratch,
-    // so the same node instance keeps focus and still receives keys.
+    // 오버레이를 켬: 서브트리를 처음부터 리빌드하면 안 됨.
+    // 같은 노드 인스턴스가 포커스를 유지하고 키를 받아야 함.
     await tester.pumpWidget(app(overlay: true, enabled: true));
     await tester.pump();
     expect(a.hasPrimaryFocus, isTrue,
@@ -163,7 +200,7 @@ void main() {
     await tester.pump();
     expect(selected, 1);
 
-    // Same for `enabled`.
+    // `enabled`도 같음.
     await tester.pumpWidget(app(overlay: false, enabled: false));
     await tester.pump();
     expect(a.hasPrimaryFocus, isTrue);
