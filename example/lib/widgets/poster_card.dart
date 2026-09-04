@@ -162,6 +162,7 @@ class _SheetAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DpadFocusable(
+      ttsLabel: label,
       autofocus: autofocus,
       onSelect: onSelect,
       effects: const [DpadTintEffect(opacity: 0.18)],

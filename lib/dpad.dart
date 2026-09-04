@@ -17,6 +17,7 @@
 /// ```dart
 /// DpadFocusable(
 ///   autofocus: true,
+///   ttsLabel: '재생',
 ///   onSelect: () => playMovie(movie),
 ///   child: PosterCard(movie),
 /// )
@@ -26,6 +27,7 @@
 ///
 /// ```dart
 /// DpadRegion(            // 위치를 기억하는 포스터 줄
+///   ttsLabel: '추천',
 ///   child: SizedBox(
 ///     height: 200,
 ///     child: ListView(scrollDirection: Axis.horizontal, children: cards),
@@ -42,7 +44,7 @@
 ///   안의 [DpadRegion]이 어느 화면 아래 있는지 표시하고, 화면 진입 시
 ///   [DpadScreen.ttsLabel]을 영역·칸보다 먼저 읽습니다.
 /// * [DpadFocusable] — 포커스 칸: 선택 / 롱셀렉트, pressed 상태,
-///   포커스 이펙트, [DpadFocusable.ttsLabel] (선택).
+///   포커스 이펙트, 필수 [DpadFocusable.ttsLabel].
 /// * [DpadRegion] — TV 의미의 구역: 포커스 메모리([DpadEnterBehavior])와
 ///   축별 가장자리 규칙([DpadEdgeBehavior]), 그리드용
 ///   [DpadRegionFlow.readingOrder], 화면 진입용 [DpadRegion.autofocus],

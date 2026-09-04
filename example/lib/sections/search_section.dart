@@ -69,6 +69,7 @@ class _SearchSectionState extends State<SearchSection> {
           const SizedBox(height: 12),
           Expanded(
             child: DpadRegion(
+              ttsLabel: 'Search results',
               debugLabel: 'search-results',
               memoryKey: 'search-results',
               child: GridView.builder(

@@ -104,6 +104,7 @@ enum DpadRegionKind {
 /// ```dart
 /// DpadRegion(
 ///   // 캐러셀: 가로는 wrap, 선택한 포스터를 기억.
+///   ttsLabel: '추천',
 ///   horizontalEdge: DpadEdgeBehavior.wrap,
 ///   child: SizedBox(
 ///     height: 200,
@@ -133,7 +134,7 @@ class DpadRegion extends StatefulWidget {
     this.onEdge,
     this.onFocusChange,
     this.debugLabel,
-    this.ttsLabel,
+    required this.ttsLabel,
   });
 
   /// 이 영역에 속하는 포커스 칸들의 서브트리.
@@ -162,6 +163,7 @@ class DpadRegion extends StatefulWidget {
   ///
   /// ```dart
   /// DpadRegion(
+  ///   ttsLabel: '추천',
   ///   memoryKey: 'home/trending-row',
   ///   child: trendingRow,
   /// )
@@ -201,10 +203,10 @@ class DpadRegion extends StatefulWidget {
 
   /// 이 영역으로 들어올 때 [Dpad.ttsService]가 읽는 문구.
   ///
-  /// 같은 화면 안에서 영역이 바뀌면 스크린 라벨 없이 이 문구와 칸
-  /// 라벨을 이어서 읽습니다. [DpadRegionKind.item] 줄이 선택됐을 때도
-  /// 줄 호스트의 안내로 쓰입니다.
-  final String? ttsLabel;
+  /// 배리어프리 안내입니다. 같은 화면 안에서 영역이 바뀌면 스크린 라벨
+  /// 없이 이 문구와 칸 라벨을 이어서 읽습니다. [DpadRegionKind.item]
+  /// 줄이 선택됐을 때도 줄 호스트의 안내로 쓰입니다.
+  final String ttsLabel;
 
   /// 화면 탐색에서 이 영역의 역할. 기본값은 [DpadRegionKind.surface].
   ///
@@ -270,7 +272,7 @@ class DpadRegionState extends State<DpadRegion> {
     _loadPersistentMemory();
     DpadMarks.regionHost[_host] = true;
     DpadMarks.managed[_host] = true;
-    if (widget.ttsLabel != null && widget.ttsLabel!.isNotEmpty) {
+    if (widget.ttsLabel.isNotEmpty) {
       DpadMarks.ttsLabel[_host] = widget.ttsLabel;
     }
     if (widget.autofocus) {
@@ -301,7 +303,7 @@ class DpadRegionState extends State<DpadRegion> {
       _loadPersistentMemory();
     }
     if (oldWidget.ttsLabel != widget.ttsLabel) {
-      if (widget.ttsLabel != null && widget.ttsLabel!.isNotEmpty) {
+      if (widget.ttsLabel.isNotEmpty) {
         DpadMarks.ttsLabel[_host] = widget.ttsLabel;
       } else {
         DpadMarks.ttsLabel[_host] = null;

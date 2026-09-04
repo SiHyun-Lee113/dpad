@@ -182,6 +182,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadFocusable(
+          ttsLabel: 'item',
           focusNode: node,
           autofocus: true,
           onSelect: () {},
@@ -208,6 +209,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadFocusable(
+          ttsLabel: 'item',
           focusNode: node,
           autofocus: true,
           child: const SizedBox(width: 60, height: 60),
@@ -243,6 +245,7 @@ void main() {
           ],
         ),
         home: DpadFocusable(
+          ttsLabel: 'item',
           focusNode: node,
           autofocus: true,
           child: const SizedBox(width: 60, height: 60),
@@ -271,6 +274,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadFocusable(
+          ttsLabel: 'item',
           focusNode: node,
           autofocus: true,
           effects: const <DpadEffect>[],

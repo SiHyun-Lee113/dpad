@@ -71,6 +71,7 @@ MaterialApp(
 ```dart
 DpadFocusable(
   autofocus: true,
+  ttsLabel: '播放',
   onSelect: () => playMovie(movie),
   child: PosterCard(movie),
 )
@@ -86,6 +87,7 @@ Row(
     // 侧边栏：焦点永远不会从屏幕上下两端"掉出去"，
     // 并记住所选目的地。
     DpadRegion(
+      ttsLabel: '侧边栏',
       verticalEdge: DpadEdgeBehavior.stop,
       child: SidebarColumn(...),
     ),
@@ -96,6 +98,7 @@ Row(
             // 每个海报行都记住自己的位置。向下再回来，
             // 焦点回到同一张海报 —— 与所有真实 TV 应用一致。
             DpadRegion(
+              ttsLabel: row.title,
               child: SizedBox(
                 height: 200,
                 child: ListView(scrollDirection: Axis.horizontal,
@@ -131,6 +134,7 @@ Row(
 
 ```dart
 DpadRegion(
+  ttsLabel: '剧集',
   horizontalEdge: DpadEdgeBehavior.wrap,   // 无限循环的剧集轮播
   onEdge: (direction) => playBumpSound(),
   onFocusChange: (inside) => setState(() => highlighted = inside),
@@ -144,6 +148,7 @@ DpadRegion(
 
 ```dart
 DpadRegion(
+  ttsLabel: '热门',
   memoryKey: 'home/trending-row',
   child: trendingRow,
 )
@@ -155,6 +160,7 @@ DpadRegion(
 
 ```dart
 DpadFocusable(
+  ttsLabel: '精选',
   effects: const [
     DpadScaleEffect(scale: 1.1),                // 抬起…
     DpadGlowEffect(color: Colors.amber),        // …并发光
@@ -182,6 +188,7 @@ MaterialApp(
 
 ```dart
 DpadFocusable(
+  ttsLabel: '播放',
   onSelect: play,
   builder: (context, state, child) => AnimatedScale(
     scale: state.pressed ? 0.97 : (state.focused ? 1.06 : 1.0),
@@ -196,6 +203,7 @@ DpadFocusable(
 
 ```dart
 DpadFocusable(
+  ttsLabel: '音量',
   onSelect: () => play(),                 // 中键（或点按）
   onLongSelect: () => showOptionsSheet(), // 长按中键
   onFocusChange: (focused) => setState(() => hovered = focused),
@@ -256,14 +264,16 @@ dpad.focused;                    // 当前焦点节点
 
 从示例应用中提炼，照做即可让复杂 TV 应用保持可预期：
 
-1. **每屏一个 `autofocus`。** 给主要操作（`播放`、第一张卡片）设
+1. **每个屏幕、区域、格子都要有 `ttsLabel`。** 本包面向无障碍遥控界面。
+   空字符串仍会跳过朗读，但字段是必填的，避免漏标。
+2. **每屏一个 `autofocus`。** 给主要操作（`播放`、第一张卡片）设
    `autofocus: true`。其余情况——push 新页、删除条目、应用恢复——焦点
    都会自动保活。
-2. **每个可视分区一个 `DpadRegion`。** 侧边栏、每个内容行、每个网格。
+3. **每个可视分区一个 `DpadRegion`。** 侧边栏、每个内容行、每个网格。
    区域优先遍历 + 焦点记忆是"原生手感"的来源。
-3. **分区切换器内的区域使用 `memoryKey`。** 普通 State 随子树销毁而
+4. **分区切换器内的区域使用 `memoryKey`。** 普通 State 随子树销毁而
    消失；带 key 的记忆可跨任意重建存活。
-4. **货架布局把 padding 放进滚动视图内部。**
+5. **货架布局把 padding 放进滚动视图内部。**
 
    ```dart
    SizedBox(
@@ -277,13 +287,13 @@ dpad.focused;                    // 当前焦点节点
    ```
 
    缩放与光晕效果会绘制进 padding，而不是被行边缘裁掉。
-5. **固定面板边缘用 `stop`，轮播用 `wrap`。** 侧边栏永远不该让焦点
+6. **固定面板边缘用 `stop`，轮播用 `wrap`。** 侧边栏永远不该让焦点
    "掉出"屏幕；剧集条可以循环。
-6. **行为接到 `onSelect`，而不是子组件的 `onPressed`。**
+7. **行为接到 `onSelect`，而不是子组件的 `onPressed`。**
    `DpadFocusable` 是唯一焦点停靠点；包裹的 Material 按钮只是视觉。
-7. **不要和文本框较劲。** `TextField` 保持裸用（不要包 `DpadFocusable`）；
+8. **不要和文本框较劲。** `TextField` 保持裸用（不要包 `DpadFocusable`）；
    方向键在文本中间编辑光标、在边缘自动移出焦点。
-8. **用 `debugOverlay: true` 调试。** 隔着客厅看不见焦点 bug；检查器
+9. **用 `debugOverlay: true` 调试。** 隔着客厅看不见焦点 bug；检查器
    实时显示焦点节点、所属区域和几何信息。
 
 ## 与 Flutter 的协作方式

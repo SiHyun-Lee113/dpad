@@ -51,6 +51,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadRegion(
+          ttsLabel: 'region',
           child: Row(children: [
             item('a', a),
             item('b', b, autofocus: true),
@@ -284,6 +285,7 @@ void main() {
       navigator.push(MaterialPageRoute<void>(
         builder: (context) => Scaffold(
           body: DpadFocusable(
+            ttsLabel: 'item',
             autofocus: true,
             effects: const <DpadEffect>[],
             child: const SizedBox(width: 60, height: 60, child: Text('p')),
@@ -396,6 +398,7 @@ void main() {
           children: [
             item('처음으로', home),
             DpadRegion(
+              ttsLabel: 'region',
               autofocus: true,
               child: Row(children: [
                 item('m1', firstMenu),

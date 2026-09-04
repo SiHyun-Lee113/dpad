@@ -54,7 +54,7 @@ Widget item(
     autofocus: autofocus,
     enabled: enabled,
     entry: entry,
-    ttsLabel: ttsLabel,
+    ttsLabel: ttsLabel ?? id,
     onSelect: onSelect,
     onLongSelect: onLongSelect,
     onFocusChange: onFocusChange,

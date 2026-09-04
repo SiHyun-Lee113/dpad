@@ -47,6 +47,7 @@ class _DialogsSectionState extends State<DialogsSection> {
             effects: [DpadTintEffect(opacity: 0.16)],
           ),
           child: DpadRegion(
+            ttsLabel: 'Dialogs',
             debugLabel: 'dialogs-demos',
             memoryKey: 'dialogs-demos',
             child: Column(
@@ -312,6 +313,7 @@ class _PinKeypadDialogState extends State<_PinKeypadDialog> {
               ),
               const SizedBox(height: 18),
               DpadRegion(
+                ttsLabel: 'PIN keypad',
                 debugLabel: 'pin-keypad',
                 horizontalEdge: DpadEdgeBehavior.stop,
                 verticalEdge: DpadEdgeBehavior.stop,
@@ -415,6 +417,7 @@ class _ChoiceDialog extends StatelessWidget {
       backgroundColor: const Color(0xFF161A22),
       title: Text(title),
       content: DpadRegion(
+        ttsLabel: title,
         debugLabel: 'choice-list',
         verticalEdge: DpadEdgeBehavior.stop,
         child: Column(

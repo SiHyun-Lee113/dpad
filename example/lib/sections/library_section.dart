@@ -12,6 +12,7 @@ class LibrarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DpadRegion(
+      ttsLabel: 'Library',
       debugLabel: 'library',
       memoryKey: 'library',
       child: GridView.builder(

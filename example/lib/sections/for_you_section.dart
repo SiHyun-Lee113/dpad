@@ -54,6 +54,7 @@ class _PosterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DpadRegion(
+      ttsLabel: row.title,
       debugLabel: 'row:${row.title}',
       memoryKey: 'for-you/${row.title}',
       child: SizedBox(
@@ -152,6 +153,7 @@ class _FeaturedBanner extends StatelessWidget {
               // 배너 버튼은 자기 영역. Play의 `entry: true`가 착지 타깃이고,
               // autofocus가 앱 전체의 첫 포커스입니다.
               DpadRegion(
+                ttsLabel: 'Featured',
                 debugLabel: 'banner-actions',
                 enter: DpadEnterBehavior.entry,
                 // Play에서 왼쪽으로 사이드바에 갈 수 있게.

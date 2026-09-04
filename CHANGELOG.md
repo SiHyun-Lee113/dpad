@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **Required `ttsLabel`** — `DpadFocusable`, `DpadRegion`, and `DpadScreen`
+  take a required accessibility label. The package is for barrier-free
+  remote UIs; empty labels still skip speech.
+
 ### Added
 
 - **`DpadScreen`** — groups `DpadRegion`s on a page or dialog. It is never

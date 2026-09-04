@@ -31,6 +31,7 @@ typedef DpadDirectionCallback = bool Function(TraversalDirection direction);
 ///
 /// ```dart
 /// DpadFocusable(
+///   ttsLabel: '재생',
 ///   onSelect: () => playMovie(movie),
 ///   child: PosterCard(movie),
 /// )
@@ -78,7 +79,7 @@ class DpadFocusable extends StatefulWidget {
     this.entry = false,
     this.focusNode,
     this.debugLabel,
-    this.ttsLabel,
+    required this.ttsLabel,
     this.autoScroll = true,
     this.scrollPadding,
     this.scrollDuration,
@@ -145,8 +146,9 @@ class DpadFocusable extends StatefulWidget {
 
   /// 이 칸이 포커스를 받으면 [Dpad.ttsService]가 읽습니다.
   ///
-  /// 비어 있거나 null이면 안내하지 않고, 이전 발화를 중단합니다.
-  final String? ttsLabel;
+  /// 배리어프리 안내 문구입니다. 비어 있으면 안내하지 않고 이전 발화를
+  /// 중단합니다.
+  final String ttsLabel;
 
   /// 포커스를 받을 때 이펙트 여백을 두고 화면에 보이게 스크롤할지.
   /// 기본값은 `true`.
@@ -268,8 +270,8 @@ class _DpadFocusableState extends State<DpadFocusable> {
     });
   }
 
-  static String? _ttsMark(String? label) {
-    if (label == null || label.isEmpty) {
+  static String? _ttsMark(String label) {
+    if (label.isEmpty) {
       return null;
     }
     return label;

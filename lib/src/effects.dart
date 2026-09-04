@@ -51,6 +51,7 @@ typedef DpadEffectBuilder = Widget Function(
 ///
 /// ```dart
 /// DpadFocusable(
+///   ttsLabel: '재생',
 ///   effects: const [
 ///     DpadScaleEffect(scale: 1.1),
 ///     DpadGlowEffect(),

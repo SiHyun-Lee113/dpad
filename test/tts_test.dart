@@ -107,7 +107,7 @@ void main() {
       home: Row(
         children: [
           item('a', a, autofocus: true, ttsLabel: 'Alpha'),
-          item('b', b),
+          item('b', b, ttsLabel: ''),
         ],
       ),
     ));

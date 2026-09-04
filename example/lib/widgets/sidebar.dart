@@ -43,6 +43,7 @@ class _SidebarState extends State<Sidebar> {
   @override
   Widget build(BuildContext context) {
     return DpadRegion(
+      ttsLabel: 'Sidebar',
       debugLabel: 'sidebar',
       // 끝에서 위/아래는 그대로: 리모컨이 메뉴에서 "떨어지지" 않음.
       // 오른쪽은 콘텐츠로 나갑니다 (가로 stop이 영역 기본값이라 명시해야 함).

@@ -97,7 +97,7 @@ class Dpad extends StatefulWidget {
   /// ```
   final ValueChanged<FocusNode?>? onFocusChange;
 
-  /// 칸이 포커스를 받을 때 [DpadFocusable.ttsLabel]을 읽는 접근성 백엔드.
+  /// 칸이 포커스를 받을 때 화면·영역·칸의 [ttsLabel]을 읽는 접근성 백엔드.
   /// null이면 안내하지 않습니다 (기본값).
   ///
   /// ```dart

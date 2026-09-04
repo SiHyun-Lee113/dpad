@@ -65,6 +65,7 @@ class DetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
                   DpadRegion(
+                    ttsLabel: 'Actions',
                     debugLabel: 'detail-actions',
                     enter: DpadEnterBehavior.entry,
                     child: Row(
@@ -106,6 +107,7 @@ class DetailPage extends StatelessWidget {
               ),
             ),
             DpadRegion(
+              ttsLabel: 'Episodes',
               debugLabel: 'episodes',
               horizontalEdge: DpadEdgeBehavior.wrap,
               child: SizedBox(

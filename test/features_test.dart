@@ -17,6 +17,7 @@ void main() {
 
     Widget content() {
       return DpadRegion(
+        ttsLabel: 'region',
         key: ValueKey<int>(generation),
         memoryKey: 'content',
         debugLabel: 'content',
@@ -26,6 +27,7 @@ void main() {
           children: [
             for (final id in const ['c1', 'c2', 'c3'])
               DpadFocusable(
+                ttsLabel: 'item',
                 onFocusChange: (focused) {
                   if (focused) {
                     focusedLabel = id;
@@ -48,6 +50,7 @@ void main() {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DpadRegion(
+                ttsLabel: 'region',
                 horizontalEdge: DpadEdgeBehavior.leave,
                 child: item('m1', m1, autofocus: true),
               ),
@@ -159,6 +162,7 @@ void main() {
     await tester.pumpWidget(tvApp(
       debugOverlay: true,
       home: DpadFocusable(
+        ttsLabel: 'item',
         autofocus: true,
         debugLabel: 'hero-button',
         effects: const <DpadEffect>[],

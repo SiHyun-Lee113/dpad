@@ -104,6 +104,7 @@ class _SettingsSectionState extends State<SettingsSection> {
             effects: [DpadTintEffect(opacity: 0.16)],
           ),
           child: DpadRegion(
+            ttsLabel: 'Playback',
             debugLabel: 'settings-playback',
             memoryKey: 'settings-playback',
             child: Column(
@@ -183,6 +184,7 @@ class _SettingsSectionState extends State<SettingsSection> {
         ),
         const SizedBox(height: 12),
         DpadRegion(
+          ttsLabel: 'Focus effect',
           debugLabel: 'settings-effects',
           // 캐러셀식 wrap, 바깥에서 들어올 때는 기하적으로 가까운 칸.
           horizontalEdge: DpadEdgeBehavior.wrap,

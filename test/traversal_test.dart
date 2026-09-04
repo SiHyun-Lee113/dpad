@@ -132,11 +132,13 @@ void main() {
         home: SizedBox(
           height: 100,
           child: DpadRegion(
+            ttsLabel: 'region',
             child: ListView.builder(
               controller: controller,
               scrollDirection: Axis.horizontal,
               itemCount: 40,
               itemBuilder: (context, index) => DpadFocusable(
+                ttsLabel: 'item',
                 focusNode: index == 0 ? first : null,
                 autofocus: index == 0,
                 effects: const <DpadEffect>[],
@@ -174,12 +176,14 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'sidebar',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(children: [item('s1', s1), item('s2', s2)]),
             ),
             const SizedBox(width: 40),
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'content',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(
@@ -218,10 +222,12 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(children: [item('s1', s1)]),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               enter: DpadEnterBehavior.entry,
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(
@@ -257,12 +263,14 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(
                 children: [item('s1', FocusNode()), item('s2', s2)],
               ),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               enter: DpadEnterBehavior.nearest,
               horizontalEdge: DpadEdgeBehavior.leave,
               child: Column(children: [item('c1', c1), item('c2', c2)]),
@@ -288,6 +296,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadRegion(
+          ttsLabel: 'region',
           flow: DpadRegionFlow.readingOrder,
           child: Column(
             children: [
@@ -338,6 +347,7 @@ void main() {
         home: Column(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               flow: DpadRegionFlow.readingOrder,
               child: Column(
                 children: [
@@ -350,7 +360,7 @@ void main() {
                 ],
               ),
             ),
-            DpadRegion(child: item('pay', below)),
+            DpadRegion(ttsLabel: 'region', child: item('pay', below)),
           ],
         ),
       ));
@@ -378,6 +388,7 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'one',
               child: item('1', one, autofocus: true),
             ),
@@ -386,6 +397,7 @@ void main() {
               children: [
                 const SizedBox(width: 180),
                 DpadRegion(
+                  ttsLabel: 'region',
                   debugLabel: 'three',
                   child: item('3', three),
                 ),
@@ -393,6 +405,7 @@ void main() {
             ),
             const SizedBox(height: 80),
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'two',
               child: item('2', two),
             ),
@@ -417,6 +430,7 @@ void main() {
 
       await tester.pumpWidget(tvApp(
         home: DpadRegion(
+          ttsLabel: 'region',
           horizontalEdge: DpadEdgeBehavior.wrap,
           child: Row(
             children: [item('a', a), item('b', b), item('c', c)],
@@ -447,6 +461,7 @@ void main() {
           children: [
             item('outside', outside),
             DpadRegion(
+              ttsLabel: 'region',
               verticalEdge: DpadEdgeBehavior.stop,
               onEdge: edges.add,
               child: Column(children: [item('a', a), item('b', b)]),
@@ -475,11 +490,12 @@ void main() {
         home: Row(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               child: Row(
                 children: [item('a', a, autofocus: true), item('b', b)],
               ),
             ),
-            DpadRegion(child: item('next', next)),
+            DpadRegion(ttsLabel: 'region', child: item('next', next)),
           ],
         ),
       ));
@@ -508,12 +524,14 @@ void main() {
         home: Column(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               child: Row(children: [
                 item('a1', a1),
                 item('a2', a2, autofocus: true),
               ]),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               child: Row(children: [
                 item('b1', b1, entry: true),
                 item('b2', b2),
@@ -541,10 +559,12 @@ void main() {
         home: Row(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: item('a', a),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               horizontalEdge: DpadEdgeBehavior.leave,
               child: item('b', b),
             ),
@@ -568,6 +588,7 @@ void main() {
         home: Row(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               onFocusChange: log.add,
               child: item('a', a),
             ),
@@ -630,13 +651,14 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               child: Row(children: [
                 item('a', a, autofocus: true),
                 item('b', b),
                 item('c', c),
               ]),
             ),
-            DpadRegion(child: item('other', other)),
+            DpadRegion(ttsLabel: 'region', child: item('other', other)),
           ],
         ),
       ));
@@ -675,8 +697,8 @@ void main() {
         navPolicy: DpadNavPolicy.kiosk,
         home: Row(
           children: [
-            DpadRegion(child: item('only', only, autofocus: true)),
-            DpadRegion(child: item('other', other)),
+            DpadRegion(ttsLabel: 'region', child: item('only', only, autofocus: true)),
+            DpadRegion(ttsLabel: 'region', child: item('other', other)),
           ],
         ),
       ));
@@ -701,9 +723,10 @@ void main() {
           children: [
             item('top', top, autofocus: true),
             DpadRegion(
+              ttsLabel: 'region',
               child: Row(children: [item('a1', a1), item('a2', a2)]),
             ),
-            DpadRegion(child: item('b1', b1)),
+            DpadRegion(ttsLabel: 'region', child: item('b1', b1)),
           ],
         ),
       ));
@@ -750,10 +773,12 @@ void main() {
         home: Column(
           children: [
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'menu',
               child: item('menu', menu, autofocus: true),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               kind: DpadRegionKind.list,
               debugLabel: 'cart',
               child: Column(
@@ -778,6 +803,7 @@ void main() {
               ),
             ),
             DpadRegion(
+              ttsLabel: 'region',
               debugLabel: 'pay',
               child: item('pay', pay),
             ),
@@ -865,6 +891,7 @@ void main() {
         navPolicy: DpadNavPolicy.kiosk,
         theme: const DpadThemeData(effects: [rowFlag]),
         home: DpadRegion(
+          ttsLabel: 'region',
           kind: DpadRegionKind.list,
           autofocus: true,
           child: DpadRegion(

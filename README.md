@@ -71,6 +71,7 @@ MaterialApp(
 ```dart
 DpadFocusable(
   autofocus: true,
+  ttsLabel: 'Play',
   onSelect: () => playMovie(movie),
   child: PosterCard(movie),
 )
@@ -86,6 +87,7 @@ Row(
     // Sidebar: never lets focus fall off the top/bottom of the screen,
     // remembers the selected destination.
     DpadRegion(
+      ttsLabel: 'Sidebar',
       verticalEdge: DpadEdgeBehavior.stop,
       child: SidebarColumn(...),
     ),
@@ -96,6 +98,7 @@ Row(
             // Each poster row remembers its position. Down and back up
             // returns to the same poster — like every real TV app.
             DpadRegion(
+              ttsLabel: row.title,
               child: SizedBox(
                 height: 200,
                 child: ListView(scrollDirection: Axis.horizontal,
@@ -131,6 +134,7 @@ Each axis independently chooses what happens at the boundary:
 
 ```dart
 DpadRegion(
+  ttsLabel: 'Episodes',
   horizontalEdge: DpadEdgeBehavior.wrap,   // an endless episode carousel
   onEdge: (direction) => playBumpSound(),
   onFocusChange: (inside) => setState(() => highlighted = inside),
@@ -146,6 +150,7 @@ and the memory persists, position-aware, across any rebuild:
 
 ```dart
 DpadRegion(
+  ttsLabel: 'Trending',
   memoryKey: 'home/trending-row',
   child: trendingRow,
 )
@@ -157,6 +162,7 @@ Effects are immutable, const-able, and composable — first effect in the list i
 
 ```dart
 DpadFocusable(
+  ttsLabel: 'Featured',
   effects: const [
     DpadScaleEffect(scale: 1.1),                // lift…
     DpadGlowEffect(color: Colors.amber),        // …and glow
@@ -184,6 +190,7 @@ Or take full control — including the **pressed** state of the select key:
 
 ```dart
 DpadFocusable(
+  ttsLabel: 'Play',
   onSelect: play,
   builder: (context, state, child) => AnimatedScale(
     scale: state.pressed ? 0.97 : (state.focused ? 1.06 : 1.0),
@@ -198,6 +205,7 @@ DpadFocusable(
 
 ```dart
 DpadFocusable(
+  ttsLabel: 'Volume',
   onSelect: () => play(),                 // center button (or tap)
   onLongSelect: () => showOptionsSheet(), // held center button
   onFocusChange: (focused) => setState(() => hovered = focused),
@@ -260,15 +268,18 @@ dpad.focused;                    // the currently focused node
 Distilled from the example app — follow these and a complex TV app stays
 predictable:
 
-1. **One `autofocus` per screen.** Give the primary action (`Play`, first
+1. **Give every screen, region, and tile a `ttsLabel`.** The package is
+   for barrier-free remote UIs. Empty labels still skip speech, but the
+   field is required so nothing is silently unlabeled.
+2. **One `autofocus` per screen.** Give the primary action (`Play`, first
    card) `autofocus: true`. Everything else is handled: pushed routes,
    removed items and app resume keep focus alive automatically.
-2. **One `DpadRegion` per visual section.** Sidebar, each shelf row, each
+3. **One `DpadRegion` per visual section.** Sidebar, each shelf row, each
    grid. Region-first traversal and focus memory are what make navigation
    feel native.
-3. **Use `memoryKey` on regions inside section switchers.** Plain state
+4. **Use `memoryKey` on regions inside section switchers.** Plain state
    dies with the subtree; keyed memory survives any rebuild.
-4. **Lay out shelves with the padding *inside* the scroll view.**
+5. **Lay out shelves with the padding *inside* the scroll view.**
 
    ```dart
    SizedBox(
@@ -283,15 +294,15 @@ predictable:
 
    Scaled and glowing focus effects paint into the padding instead of
    being clipped at the row edge.
-5. **`stop` the edges of anchored panels, `wrap` carousels.** A sidebar
+6. **`stop` the edges of anchored panels, `wrap` carousels.** A sidebar
    should never let focus fall off the screen; an episode strip can loop.
-6. **Wire actions through `onSelect`, not the child's `onPressed`.**
+7. **Wire actions through `onSelect`, not the child's `onPressed`.**
    `DpadFocusable` is the single focus stop; a wrapped Material button is
    just visuals.
-7. **Don't fight text fields.** Leave `TextField`s bare (not wrapped in
+8. **Don't fight text fields.** Leave `TextField`s bare (not wrapped in
    `DpadFocusable`); arrows edit text mid-string and navigate away at the
    edges automatically.
-8. **Debug with `debugOverlay: true`.** Focus bugs are invisible on a TV
+9. **Debug with `debugOverlay: true`.** Focus bugs are invisible on a TV
    across the room; the inspector shows the focused node, its region and
    geometry live.
 
