@@ -5,8 +5,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 ///
 /// [speak] / [stop]은 await 하지 않습니다. 끝나면 다음 키를 막는
 /// `awaitSpeakCompletion(true)`도 켜지 않습니다.
-class DpadTtsServiceImpl implements DpadTtsService {
-  DpadTtsServiceImpl() {
+class FlutterTtsService implements DpadTtsService {
+  FlutterTtsService() {
     _init();
   }
 

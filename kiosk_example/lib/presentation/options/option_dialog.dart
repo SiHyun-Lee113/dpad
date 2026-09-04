@@ -1,12 +1,14 @@
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 
-import 'models.dart';
-import 'quantity_dialog.dart';
-import 'theme.dart';
+import '../../core/theme/kiosk_colors.dart';
+import '../../core/utils/format_price.dart';
+import '../../domain/entities/menu_item.dart';
+import '../../domain/entities/option.dart';
+import '../../domain/entities/selected_options.dart';
+import '../quantity/quantity_dialog.dart';
 
-/// 메뉴 선택 후 뜨는 옵션 다이얼로그.
-/// 단일 선택 · 복수 선택 · 수량형을 한 화면에 모아 키오스크 탐색을 시험합니다.
+/// 단일 선택 · 복수 선택 · 수량형. 그룹마다 [DpadRegion]이라 키오스크 상/하가 밴드를 바꿉니다.
 Future<SelectedOptions?> showOptionDialog(
   BuildContext context, {
   required MenuItem item,
@@ -27,10 +29,26 @@ class OptionDialog extends StatefulWidget {
 }
 
 class _OptionDialogState extends State<OptionDialog> {
-  late SelectedOptions _selected = SelectedOptions.defaults(widget.item.options);
+  late SelectedOptions _selected =
+      SelectedOptions.defaults(widget.item.options);
+  final FocusNode _addButtonNode = FocusNode(debugLabel: '담기');
+
+  static const int _addFocusCount = 3;
 
   int get _unitPrice =>
       widget.item.price + _selected.extraPrice(widget.item.options);
+
+  /// 고른 추가 옵션 개수 + 수량형 개수. 온도처럼 항상 하나인 단일 선택은 빼니다.
+  int get _selectedOptionCount {
+    int count = 0;
+    for (final Set<String> picked in _selected.multis.values) {
+      count += picked.length;
+    }
+    for (final int quantity in _selected.quantities.values) {
+      count += quantity;
+    }
+    return count;
+  }
 
   void _selectSingle(OptionGroup group, String id) {
     setState(() {
@@ -41,6 +59,7 @@ class _OptionDialogState extends State<OptionDialog> {
   }
 
   void _toggleMulti(OptionGroup group, String id) {
+    final int previousCount = _selectedOptionCount;
     setState(() {
       final Set<String> next = Set<String>.of(
         _selected.multis[group.id] ?? const <String>{},
@@ -52,15 +71,26 @@ class _OptionDialogState extends State<OptionDialog> {
         multis: <String, Set<String>>{..._selected.multis, group.id: next},
       );
     });
+    _focusAddIfReachedCount(previousCount);
   }
 
   void _setQuantity(OptionGroup group, int value) {
     final int clamped = value.clamp(group.min, group.max);
+    final int previousCount = _selectedOptionCount;
     setState(() {
       _selected = _selected.copyWith(
         quantities: <String, int>{..._selected.quantities, group.id: clamped},
       );
     });
+    _focusAddIfReachedCount(previousCount);
+  }
+
+  void _focusAddIfReachedCount(int previousCount) {
+    if (previousCount >= _addFocusCount ||
+        _selectedOptionCount < _addFocusCount) {
+      return;
+    }
+    Dpad.of(context).requestFocus(_addButtonNode);
   }
 
   Future<void> _editQuantity(OptionGroup group) async {
@@ -79,13 +109,19 @@ class _OptionDialogState extends State<OptionDialog> {
   }
 
   @override
+  void dispose() {
+    _addButtonNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 72, vertical: 36),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 640),
+        constraints: const BoxConstraints(maxWidth: 680, maxHeight: 920),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
           child: Column(
@@ -106,10 +142,9 @@ class _OptionDialogState extends State<OptionDialog> {
                             color: kioskBrown,
                           ),
                         ),
-                        Text(
+                        const Text(
                           '옵션을 고른 뒤 담기',
-                          style:
-                              const TextStyle(fontSize: 14, color: kioskMuted),
+                          style: TextStyle(fontSize: 14, color: kioskMuted),
                         ),
                       ],
                     ),
@@ -157,6 +192,7 @@ class _OptionDialogState extends State<OptionDialog> {
                         label: '담기',
                         debugLabel: '담기',
                         filled: true,
+                        focusNode: _addButtonNode,
                         onSelect: () => Navigator.pop(context, _selected),
                       ),
                     ),
@@ -187,7 +223,8 @@ class _OptionDialogState extends State<OptionDialog> {
                     ),
                     child: _ChoiceChip(
                       choice: group.choices[i],
-                      selected: _selected.singles[group.id] == group.choices[i].id,
+                      selected:
+                          _selected.singles[group.id] == group.choices[i].id,
                       autofocus: autofocusRegion && i == 0,
                       debugLabel: 'option:${group.choices[i].label}',
                       onSelect: () => _selectSingle(group, group.choices[i].id),
@@ -413,16 +450,19 @@ class _DialogAction extends StatelessWidget {
     required this.debugLabel,
     required this.filled,
     required this.onSelect,
+    this.focusNode,
   });
 
   final String label;
   final String debugLabel;
   final bool filled;
   final VoidCallback onSelect;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return DpadFocusable(
+      focusNode: focusNode,
       debugLabel: debugLabel,
       ttsLabel: label,
       onSelect: onSelect,

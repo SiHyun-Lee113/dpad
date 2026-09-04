@@ -1,10 +1,12 @@
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 
-import 'models.dart';
-import 'quantity_dialog.dart';
-import 'theme.dart';
+import '../../core/theme/kiosk_colors.dart';
+import '../../core/utils/format_price.dart';
+import '../../domain/entities/cart_line.dart';
+import '../quantity/quantity_dialog.dart';
 
+/// 장바구니. [DpadRegionKind.list] / [item] — 화면 상/하에서 한 밴드입니다.
 class CartPanel extends StatelessWidget {
   const CartPanel({
     super.key,
@@ -34,23 +36,14 @@ class CartPanel extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(28, 12, 28, 4),
-            child: Row(
-              children: [
-                Text(
-                  '장바구니  $count개',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: kioskBrown,
-                  ),
-                ),
-                const Spacer(),
-                const Text(
-                  '줄 선택 후 Enter → − / 수량 / ＋ / 삭제',
-                  style: TextStyle(fontSize: 13, color: kioskMuted),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Text(
+              '장바구니  $count개',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: kioskBrown,
+              ),
             ),
           ),
           Expanded(
@@ -165,74 +158,87 @@ class _CartRow extends StatelessWidget {
     return DpadRegion(
       kind: DpadRegionKind.item,
       debugLabel: 'cart-row-$index',
-      ttsLabel: '${line.item.name}, ${line.count}개, ${formatPrice(line.lineTotal)}원',
+      ttsLabel:
+          '${line.item.name}, ${line.count}개, ${formatPrice(line.lineTotal)}원',
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: kioskFill,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Column(
             children: [
-              Text(line.item.emoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${line.item.name}  ×${line.count}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: kioskBrown,
-                      ),
+              Row(
+                children: [
+                  Text(line.item.emoji, style: const TextStyle(fontSize: 28)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${line.item.name}  ×${line.count}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: kioskBrown,
+                          ),
+                        ),
+                        if (options.isNotEmpty)
+                          Text(
+                            options,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: kioskMuted,
+                            ),
+                          ),
+                      ],
                     ),
-                    if (options.isNotEmpty)
-                      Text(
-                        options,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, color: kioskMuted),
-                      ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    '${formatPrice(line.lineTotal)}원',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: kioskAccent,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                '${formatPrice(line.lineTotal)}원',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: kioskAccent,
-                ),
-              ),
-              const SizedBox(width: 12),
-              _CartIconButton(
-                label: '−',
-                debugLabel: 'cart-minus-$index',
-                ttsLabel: '${line.item.name} 수량 감소',
-                onSelect: onDecrement,
-              ),
-              _CartIconButton(
-                label: '${line.count}',
-                debugLabel: 'cart-count-$index',
-                ttsLabel: '${line.item.name} 수량 ${line.count}, 누르면 직접 입력',
-                wide: true,
-                onSelect: onEditCount,
-              ),
-              _CartIconButton(
-                label: '＋',
-                debugLabel: 'cart-plus-$index',
-                ttsLabel: '${line.item.name} 수량 증가',
-                onSelect: onIncrement,
-              ),
-              _CartIconButton(
-                label: '삭제',
-                debugLabel: 'cart-delete-$index',
-                ttsLabel: '${line.item.name} 삭제',
-                wide: true,
-                onSelect: onRemove,
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _CartIconButton(
+                    label: '−',
+                    debugLabel: 'cart-minus-$index',
+                    ttsLabel: '${line.item.name} 수량 감소',
+                    onSelect: onDecrement,
+                  ),
+                  _CartIconButton(
+                    label: '${line.count}',
+                    debugLabel: 'cart-count-$index',
+                    ttsLabel: '${line.item.name} 수량 ${line.count}, 누르면 직접 입력',
+                    wide: true,
+                    onSelect: onEditCount,
+                  ),
+                  _CartIconButton(
+                    label: '＋',
+                    debugLabel: 'cart-plus-$index',
+                    ttsLabel: '${line.item.name} 수량 증가',
+                    onSelect: onIncrement,
+                  ),
+                  _CartIconButton(
+                    label: '삭제',
+                    debugLabel: 'cart-delete-$index',
+                    ttsLabel: '${line.item.name} 삭제',
+                    wide: true,
+                    onSelect: onRemove,
+                  ),
+                ],
               ),
             ],
           ),

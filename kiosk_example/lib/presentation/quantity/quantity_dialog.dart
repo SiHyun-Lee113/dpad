@@ -1,9 +1,10 @@
 import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 
-import 'theme.dart';
+import '../../core/theme/kiosk_colors.dart';
 
 /// 장바구니 수량·옵션 수량형에서 쓰는 숫자 키패드.
+/// [DpadRegionFlow.readingOrder] + 다이얼로그 [FocusScope] 가둠을 보여 줍니다.
 Future<int?> showQuantityDialog(
   BuildContext context, {
   required String title,
