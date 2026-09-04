@@ -60,6 +60,11 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _goHome() {
+    final NavigatorState navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
     Dpad.of(context).requestFirstFocus(_menuRegionKey.currentContext);
   }
 
@@ -102,7 +107,10 @@ class _MenuPageState extends State<MenuPage> {
     final cart = CartScope.of(context);
     final List<MenuItem> menus = _menus;
 
-    return Scaffold(
+    return DpadScreen(
+      debugLabel: 'menu',
+      ttsLabel: '메뉴 선택',
+      child: Scaffold(
       body: Column(
         children: [
           KioskHeader(
@@ -123,6 +131,7 @@ class _MenuPageState extends State<MenuPage> {
               child: DpadRegion(
                 key: _menuRegionKey,
                 debugLabel: 'menu-grid',
+                ttsLabel: '메뉴',
                 memoryKey: 'kiosk-menu-grid',
                 autofocus: true,
                 flow: DpadRegionFlow.readingOrder,
@@ -164,6 +173,7 @@ class _MenuPageState extends State<MenuPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

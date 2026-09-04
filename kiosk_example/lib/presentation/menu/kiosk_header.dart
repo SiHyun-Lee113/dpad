@@ -23,6 +23,7 @@ class KioskHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadRegion(
       debugLabel: 'header',
+      ttsLabel: '상단 메뉴',
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -10,7 +10,10 @@ class HelpPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return DpadScreen(
+      debugLabel: 'help',
+      ttsLabel: '도움말',
+      child: Scaffold(
       body: Column(
         children: [
           KioskHeader(
@@ -20,6 +23,7 @@ class HelpPage extends StatelessWidget {
           Expanded(
             child: DpadRegion(
               debugLabel: 'help',
+              ttsLabel: '안내',
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                 children: const [
@@ -60,7 +64,10 @@ class HelpPage extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: DpadFocusable(
+            child: DpadRegion(
+              debugLabel: 'help-close',
+              ttsLabel: '닫기',
+              child: DpadFocusable(
               autofocus: true,
               debugLabel: '도움말-닫기',
               ttsLabel: '닫기',
@@ -86,8 +93,10 @@ class HelpPage extends StatelessWidget {
                 ),
               ),
             ),
+            ),
           ),
         ],
+      ),
       ),
     );
   }

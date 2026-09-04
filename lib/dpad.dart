@@ -38,6 +38,9 @@
 /// * [Dpad] — 루트: 키 처리, 포커스 복구, [Dpad.of]로 프로그래밍 제어,
 ///   접근성 안내용 [DpadTtsService] (선택). 화면을 바꾸면 새 페이지에
 ///   포커스가 착지하고, 이전 페이지 마지막 칸에 남지 않습니다.
+/// * [DpadScreen] — 화면(또는 다이얼로그) 묶음. 포커스되지 않습니다.
+///   안의 [DpadRegion]이 어느 화면 아래 있는지 표시하고, 화면 진입 시
+///   [DpadScreen.ttsLabel]을 영역·칸보다 먼저 읽습니다.
 /// * [DpadFocusable] — 포커스 칸: 선택 / 롱셀렉트, pressed 상태,
 ///   포커스 이펙트, [DpadFocusable.ttsLabel] (선택).
 /// * [DpadRegion] — TV 의미의 구역: 포커스 메모리([DpadEnterBehavior])와
@@ -56,6 +59,7 @@ export 'src/key_set.dart';
 export 'src/nav_policy.dart';
 export 'src/region.dart';
 export 'src/root.dart';
+export 'src/screen.dart';
 export 'src/scroll.dart';
 export 'src/theme.dart';
 export 'src/traversal.dart';

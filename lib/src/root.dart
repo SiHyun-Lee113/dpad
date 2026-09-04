@@ -8,6 +8,7 @@ import 'key_set.dart';
 import 'marks.dart';
 import 'nav_policy.dart';
 import 'region.dart';
+import 'screen.dart';
 import 'scroll.dart';
 import 'theme.dart';
 import 'traversal.dart';
@@ -222,6 +223,8 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
   bool _restoring = false;
   int _restoreAttempts = 0;
   int _ttsAnnounceEpoch = 0;
+  DpadScreenState? _lastTtsScreen;
+  DpadRegionState? _lastTtsRegion;
 
   @override
   void initState() {
@@ -270,14 +273,28 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
   }
 
   void _announceFocus(FocusNode node) {
+    final DpadScreenState? screen = DpadScreen.ofNode(node);
+    final DpadRegionState? region = DpadRegion.ofNode(node);
+    final bool screenChanged = !identical(screen, _lastTtsScreen);
+    final bool regionChanged = !identical(region, _lastTtsRegion);
+    _lastTtsScreen = screen;
+    _lastTtsRegion = region;
+
     final DpadTtsService? tts = widget.ttsService;
     if (tts == null) {
       return;
     }
-    final String? label = DpadMarks.ttsLabel[node];
+    final String? label = composeTtsAnnouncement(
+      screenChanged: screenChanged,
+      regionChanged: regionChanged,
+      screenLabel: screen?.ttsLabel,
+      regionLabel: region?.widget.ttsLabel,
+      tileLabel: DpadMarks.ttsLabel[node],
+      tileIsRegionHost: DpadMarks.regionHost[node] == true,
+    );
     final int epoch = ++_ttsAnnounceEpoch;
     // 키/포커스 처리와 같은 턴에서 플랫폼 TTS를 부르면 Windows SAPI가
-    // 메시지 루프를 막아, 다음 프레임(하이라이트)까지  ent습니다.
+    // 메시지 루프를 막아, 다음 프레임(하이라이트)까지 멈춥니다.
     // 이번 프레임을 그린 뒤에 최신 라벨만 읽습니다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || epoch != _ttsAnnounceEpoch) {
@@ -608,8 +625,11 @@ class _DpadDebugOverlayState extends State<_DpadDebugOverlay>
       return const SizedBox.shrink();
     }
     final DpadRegionState? region = DpadRegion.ofNode(node);
+    final DpadScreenState? screen = DpadScreen.ofNode(node);
     final String label = <String?>[
       node.debugLabel,
+      if (screen != null)
+        'screen: ${screen.widget.debugLabel ?? screen.hashCode}',
       if (region != null)
         'region: ${region.widget.debugLabel ?? region.hashCode}',
       '${rect.width.round()}×${rect.height.round()}',

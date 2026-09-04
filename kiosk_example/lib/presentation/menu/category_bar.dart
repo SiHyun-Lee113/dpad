@@ -24,6 +24,7 @@ class CategoryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadRegion(
       debugLabel: 'categories',
+      ttsLabel: '카테고리',
       memoryKey: 'kiosk-categories',
       horizontalEdge: DpadEdgeBehavior.wrap,
       enter: DpadEnterBehavior.restore,
@@ -61,7 +62,7 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadFocusable(
       debugLabel: 'category:${category.label}',
-      ttsLabel: '카테고리 ${category.label}',
+      ttsLabel: category.label,
       onSelect: onSelect,
       child: Container(
         height: 44,

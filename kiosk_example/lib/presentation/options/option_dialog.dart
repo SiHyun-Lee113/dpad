@@ -15,7 +15,11 @@ Future<SelectedOptions?> showOptionDialog(
 }) {
   return showDialog<SelectedOptions>(
     context: context,
-    builder: (BuildContext context) => OptionDialog(item: item),
+    builder: (BuildContext context) => DpadScreen(
+      debugLabel: 'options',
+      ttsLabel: '${item.name} 옵션',
+      child: OptionDialog(item: item),
+    ),
   );
 }
 
@@ -176,6 +180,7 @@ class _OptionDialogState extends State<OptionDialog> {
               ),
               DpadRegion(
                 debugLabel: 'option-actions',
+                ttsLabel: '하단바 영역',
                 child: Row(
                   children: [
                     Expanded(
@@ -318,6 +323,7 @@ class _OptionBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadRegion(
       debugLabel: debugLabel,
+      ttsLabel: title,
       autofocus: autofocus,
       child: DecoratedBox(
         decoration: BoxDecoration(

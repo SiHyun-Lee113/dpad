@@ -17,63 +17,72 @@ class OrderCompletePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: DpadRegion(
-        debugLabel: 'order-complete',
-        autofocus: true,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('✅', style: TextStyle(fontSize: 64)),
-                const SizedBox(height: 16),
-                const Text(
-                  '주문이 완료되었습니다',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: kioskBrown,
+    return DpadScreen(
+      debugLabel: 'order-complete',
+      ttsLabel: '주문 완료',
+      child: Scaffold(
+        body: DpadRegion(
+          debugLabel: 'order-complete',
+          ttsLabel: '처음으로',
+          autofocus: true,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('✅', style: TextStyle(fontSize: 64)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '주문이 완료되었습니다',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: kioskBrown,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$count개 · ${formatPrice(total)}원',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: kioskAccent,
+                  const SizedBox(height: 8),
+                  Text(
+                    '$count개 · ${formatPrice(total)}원',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: kioskAccent,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                DpadFocusable(
-                  autofocus: true,
-                  debugLabel: 'complete-home',
-                  ttsLabel: '처음으로',
-                  onSelect: () => Navigator.of(context).pop(),
-                  child: const SizedBox(
-                    width: 240,
-                    height: 64,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: kioskAccent,
-                        borderRadius: BorderRadius.all(Radius.circular(16)),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '처음으로',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                  const SizedBox(height: 32),
+                  DpadFocusable(
+                    autofocus: true,
+                    debugLabel: 'complete-home',
+                    ttsLabel: '처음으로',
+                    onSelect: () {
+                      Navigator.of(context).popUntil((Route<void> route) {
+                        return route.isFirst;
+                      });
+                    },
+                    child: const SizedBox(
+                      width: 240,
+                      height: 64,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: kioskAccent,
+                          borderRadius: BorderRadius.all(Radius.circular(16)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '처음으로',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

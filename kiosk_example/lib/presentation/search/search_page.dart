@@ -46,7 +46,10 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     final List<MenuItem> results = widget.getMenus(query: _query);
 
-    return Scaffold(
+    return DpadScreen(
+      debugLabel: 'search',
+      ttsLabel: '검색',
+      child: Scaffold(
       body: Column(
         children: [
           KioskHeader(
@@ -55,21 +58,25 @@ class _SearchPageState extends State<SearchPage> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: DpadFocusable(
-              autofocus: true,
-              excludeChildFocus: false,
+            child: DpadRegion(
               debugLabel: 'search-field',
-              ttsLabel: '검색어 입력',
-              child: TextField(
-                controller: _controller,
-                onChanged: (String value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: '메뉴 이름',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              ttsLabel: '검색어',
+              child: DpadFocusable(
+                autofocus: true,
+                excludeChildFocus: false,
+                debugLabel: 'search-field',
+                ttsLabel: '검색어 입력',
+                child: TextField(
+                  controller: _controller,
+                  onChanged: (String value) => setState(() => _query = value),
+                  decoration: InputDecoration(
+                    hintText: '메뉴 이름',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -99,6 +106,7 @@ class _SearchPageState extends State<SearchPage> {
           Expanded(
             child: DpadRegion(
               debugLabel: 'search-results',
+              ttsLabel: '검색 결과',
               memoryKey: 'kiosk-search-results',
               flow: DpadRegionFlow.readingOrder,
               child: GridView.builder(
@@ -121,6 +129,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

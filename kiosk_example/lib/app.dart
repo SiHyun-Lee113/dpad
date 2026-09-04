@@ -9,16 +9,16 @@ import 'domain/usecases/get_menus.dart';
 import 'presentation/cart/cart_controller.dart';
 import 'presentation/cart/cart_scope.dart';
 import 'presentation/help/help_page.dart';
-import 'presentation/menu/menu_page.dart';
 import 'presentation/search/search_page.dart';
 import 'presentation/session/kiosk_session.dart';
 import 'presentation/session/session_scope.dart';
 import 'presentation/settings/settings_page.dart';
+import 'presentation/start/start_page.dart';
 
 /// 합성 루트. 의존성을 여기서만 만듭니다.
 ///
 /// ```
-/// Dpad.wrap  →  SessionScope  →  CartScope  →  MenuPage
+/// Dpad.wrap  →  SessionScope  →  CartScope  →  StartPage
 /// ```
 class KioskApp extends StatefulWidget {
   const KioskApp({super.key});
@@ -115,7 +115,7 @@ class _KioskAppState extends State<KioskApp> {
               },
             );
           },
-          home: MenuPage(getMenus: _getMenus),
+          home: StartPage(getMenus: _getMenus),
         ),
       ),
     );

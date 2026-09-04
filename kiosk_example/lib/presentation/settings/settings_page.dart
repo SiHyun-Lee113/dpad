@@ -62,7 +62,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final session = SessionScope.of(context);
 
-    return Scaffold(
+    return DpadScreen(
+      debugLabel: 'settings',
+      ttsLabel: '설정',
+      child: Scaffold(
       body: Column(
         children: [
           KioskHeader(
@@ -111,6 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   child: DpadRegion(
                     debugLabel: 'settings-a11y',
+                    ttsLabel: '접근성',
                     memoryKey: 'kiosk-settings-a11y',
                     child: Column(
                       children: [
@@ -181,6 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 12),
                 DpadRegion(
                   debugLabel: 'settings-edge',
+                  ttsLabel: '가장자리',
                   horizontalEdge: DpadEdgeBehavior.stop,
                   onEdge: (TraversalDirection direction) {
                     setState(() => _lastEdge = direction.name);
@@ -236,6 +241,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 12),
                 DpadRegion(
                   debugLabel: 'settings-effects',
+                  ttsLabel: '포커스 이펙트',
                   horizontalEdge: DpadEdgeBehavior.wrap,
                   enter: DpadEnterBehavior.nearest,
                   child: Wrap(
@@ -316,6 +322,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

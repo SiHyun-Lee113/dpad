@@ -23,7 +23,7 @@ lib/
     repositories/                    InMemory*Repository
     tts/                             DpadTtsService ← flutter_tts
   presentation/                      위젯. 여기서 dpad를 씁니다
-    menu/                            readingOrder 그리드, 카테고리 wrap
+    start/                           주문 시작 ([DpadScreen] 진입 TTS)
     cart/                            list / item 장바구니
     options/                         단일·복수·수량 다이얼로그
     quantity/                        숫자 키패드 다이얼로그
@@ -42,7 +42,7 @@ lib/
 
 | API | 화면 |
 | --- | --- |
-| `Dpad` / `navPolicy.kiosk` / `theme` / TTS | `app.dart` |
+| `DpadScreen` + 영역 `ttsLabel` | 주문 시작, 메뉴, 다이얼로그 |
 | `onBack` / `onMenu` / `shortcuts` / `onFocusChange` / `debugOverlay` | `app.dart`, 설정에서 토글 |
 | `DpadRegionFlow.readingOrder` | 메뉴 그리드 |
 | `DpadEdgeBehavior.wrap` + `memoryKey` | 카테고리 칩 |
@@ -56,6 +56,11 @@ lib/
 단축키: **F1** 도움말, **F2** 검색, **F3** 설정. 리모컨 메뉴 키도 도움말입니다.
 
 ## 동작
+
+**주문 시작**
+
+- 가운데 **주문하기**만 있습니다. 선택하면 메뉴 화면으로 들어갑니다.
+- 화면 진입 시 TTS는 `주문 시작, 시작, 주문하기` 순으로 읽습니다.
 
 **메뉴 그리드** (2열, `readingOrder`)
 

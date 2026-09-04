@@ -14,11 +14,15 @@ Future<int?> showQuantityDialog(
 }) {
   return showDialog<int>(
     context: context,
-    builder: (BuildContext context) => QuantityDialog(
-      title: title,
-      value: value,
-      min: min,
-      max: max,
+    builder: (BuildContext context) => DpadScreen(
+      debugLabel: 'quantity',
+      ttsLabel: '$title 입력',
+      child: QuantityDialog(
+        title: title,
+        value: value,
+        min: min,
+        max: max,
+      ),
     ),
   );
 }
@@ -127,6 +131,7 @@ class _QuantityDialogState extends State<QuantityDialog> {
               const SizedBox(height: 16),
               DpadRegion(
                 debugLabel: 'quantity-keypad',
+                ttsLabel: '숫자 키패드',
                 autofocus: true,
                 flow: DpadRegionFlow.readingOrder,
                 child: Column(

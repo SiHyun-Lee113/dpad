@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`DpadScreen`** — groups `DpadRegion`s on a page or dialog. It is never
+  focusable. On screen entry TTS reads screen → region → tile; moving to
+  another region on the same screen reads region → tile.
 - **`DpadRegionFlow.readingOrder`** — left/right walk a region's items in
   reading order (including 4 → 5 in a 4×2 grid) and wrap last → first.
   Up/down leave the region via `verticalEdge` instead of moving to the

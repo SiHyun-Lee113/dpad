@@ -61,6 +61,7 @@ class CartPanel extends StatelessWidget {
                 : DpadRegion(
                     kind: DpadRegionKind.list,
                     debugLabel: 'cart',
+                    ttsLabel: '장바구니',
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                       child: Column(
@@ -95,6 +96,7 @@ class CartPanel extends StatelessWidget {
           ),
           DpadRegion(
             debugLabel: 'pay',
+            ttsLabel: '결제',
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: DpadFocusable(

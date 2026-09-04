@@ -199,7 +199,11 @@ class DpadRegion extends StatefulWidget {
   /// 포커스 디버그 출력에 보이는 라벨.
   final String? debugLabel;
 
-  /// [DpadRegionKind.item] 줄이 선택됐을 때 [Dpad.ttsService]가 읽는 문구.
+  /// 이 영역으로 들어올 때 [Dpad.ttsService]가 읽는 문구.
+  ///
+  /// 같은 화면 안에서 영역이 바뀌면 스크린 라벨 없이 이 문구와 칸
+  /// 라벨을 이어서 읽습니다. [DpadRegionKind.item] 줄이 선택됐을 때도
+  /// 줄 호스트의 안내로 쓰입니다.
   final String? ttsLabel;
 
   /// 화면 탐색에서 이 영역의 역할. 기본값은 [DpadRegionKind.surface].
